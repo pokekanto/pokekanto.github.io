@@ -1,0 +1,16 @@
+# JAMAIS de ROM sur GitHub (contenu Nintendo protégé)
+*.gba
+*.gb
+*.gbc
+*.nds
+*.zip
+
+# Sauvegardes d'émulateur
+*.sav
+*.srm
+*.sgm
+*.state
+
+# Fichiers système
+.DS_Store
+Thumbs.db

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pokekanto — Aventure à deux</title>
+<link rel="icon" type="image/png" href="assets/img/onglet.png?v=3">
+<link rel="apple-touch-icon" href="assets/img/onglet.png?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css?v=20260618x">
+</head>
+<body>
+<video id="bgVideo" class="bg-video" autoplay loop muted playsinline>
+  <source src="assets/video/videoplayback.webm" type="video/webm">
+</video>
+<div class="bg-overlay"></div>
+
+<header>
+  <img src="assets/img/titre-jeu.png" alt="Pokekanto" class="titre-jeu">
+  <p>Aventure à deux — chacun sa ROM, un seul monde.</p>
+</header>
+
+<main>
+  <section id="setup">
+    <div class="pokeball"></div>
+        <div id="romDrop" class="rom-drop">
+      <p class="rom-drop-titre">Dépose ta ROM Rouge Feu ici</p>
+      <p class="rom-drop-sous">ou clique pour la choisir (.gba)</p>
+    </div>
+    <p id="romStatus" class="setup-status"></p>
+    <button type="button" id="launchBtn" class="btn" hidden>Lancer le jeu</button>
+    <input type="file" id="romInput" accept=".gba" hidden>
+    <p class="note">Ta ROM reste sur ton ordinateur, elle n'est jamais envoyée sur internet.<br>
+    Chaque joueur fournit sa propre ROM (Rouge Feu ou un hack basé dessus).</p>
+    <label class="btn small secondary">Utiliser une sauvegarde (.sav) — optionnel<input type="file" id="savInput" accept=".sav" hidden></label>
+    </div>
+  </section>
+
+  <section id="play">
+    <div class="mobile-hud" aria-label="Menus mobiles">
+      <button type="button" id="mobileValdoriaBtn">PokéKanto</button>
+    </div>
+
+    <div id="settingsBar" class="top-bar">
+      <button type="button" id="settingsBtn" class="settings-btn" title="Réglages">⚙️ Réglages</button>
+      <div id="volControl" class="vol-control">
+        <span class="vol-icon">🔊</span>
+        <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="100" aria-label="Volume">
+      </div>
+    </div>
+    <div id="screenZone">
+      <div id="tagAmiListe"></div>
+      <div id="screenWrap">
+        <canvas id="screen" width="240" height="160"></canvas>
+        <canvas id="overlay" width="480" height="320"></canvas>
+      </div>
+      <div id="screenSidebar">
+        <div class="settings-head"><strong>⚙️ Réglages</strong><button type="button" id="settingsClose">Fermer</button></div>
+        <div class="sidebar-section">
+          <div id="actionBar">
+            <button id="soundBtn" title="Son">🔊</button>
+            <button id="raccourcisBtn" type="button" title="Raccourcis">⌨️</button>
+            <label class="action-btn" id="playSavLabel" title="Importer .sav">📥<input type="file" id="playSavInput" accept=".sav" hidden></label>
+            <button id="saveBtn" disabled title="Exporter .sav">📤</button>
+            <button type="button" id="linkroomBtnSaveMap2" title="Cable Club (combats / échanges)">⚔️</button>
+          </div>
+          <p id="saveStatus" class="save-status"></p>
+        </div>
+        <div class="sidebar-section" id="cloudSaveSection" hidden>
+          <p class="cloud-code-label">☁️ Sauvegarde : <strong id="cloudCode">—</strong></p>
+          <button type="button" id="cloudSaveBtn" class="cloud-save-btn">☁️ Sauvegarder en ligne</button>
+          <p class="cloud-note">⚠️ Important : à cliquer une fois en début de partie pour sauvegarder en ligne. Ensuite c'est automatique, plus besoin d'y toucher.</p>
+          <div class="cloud-restore">
+            <input id="cloudCodeInput" maxlength="14" placeholder="VALD-XXXX-XXXX">
+            <button type="button" id="cloudRestoreBtn">Utiliser ce code</button>
+          </div>
+        </div>
+        <div class="sidebar-section sidebar-tag-section" id="sidebarTag">
+          <p class="tchat-code" id="tchatCodeInfo"></p>
+          <div class="tchat-gestion" id="tchatGestion">
+            <input id="tagAmiInput" maxlength="17" placeholder="Nom#1234">
+            <button type="button" id="tagAmiAjouter">Ajouter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p id="friendInfo"></p>
+    <div id="settingsBackdrop"></div>
+
+    <div id="tchat" aria-label="Tchat">
+      <div class="tchat-onglets">
+        <button type="button" id="tchatOngletGeneral" class="actif">🌍 Général</button>
+        <button type="button" id="tchatOngletAmis">⭐ Amis</button>
+      </div>
+      <div id="tchatMessages"></div>
+      <form id="tchatForm" autocomplete="off">
+        <input id="tchatInput" maxlength="120" placeholder="Écris au monde…" disabled>
+        <button type="submit">Envoyer</button>
+      </form>
+    </div>
+
+    <div class="mobile-backdrop" id="mobileBackdrop"></div>
+    <div class="valdoria-options" id="valdoriaOptions">
+      <div class="mobile-drawer-head">
+        <strong>PokéKanto</strong>
+        <button type="button" id="closeValdoriaMenu">Fermer</button>
+      </div>
+
+      <input id="playerName" maxlength="16" hidden>
+
+      <div class="panel" id="drawerActionsPanel">
+        <div id="drawerActionBar">
+          <button id="drawerSoundBtn" title="Son">🔊 Son</button>
+          <button type="button" id="drawerImportBtn" title="Importer .sav">📥 Import</button>
+          <button id="drawerSaveBtn" disabled title="Exporter .sav">📤 Export</button>
+          <button type="button" id="drawerLinkroomBtn2" title="Cable Club">⚔️ Cable Club</button>
+        </div>
+      </div>
+
+      <div class="panel" id="drawerCloudSaveSection" hidden>
+        <p class="linkroom-config-titre">☁️ Sauvegarde en ligne</p>
+        <p class="cloud-code-label">Ton code : <strong id="drawerCloudCode">—</strong></p>
+        <button type="button" id="drawerCloudSaveBtn" class="cloud-save-btn">☁️ Sauvegarder en ligne</button>
+        <p class="cloud-note">⚠️ Important : à cliquer une fois en début de partie pour sauvegarder en ligne. Ensuite c'est automatique, plus besoin d'y toucher.</p>
+        <div class="cloud-restore">
+          <input id="drawerCloudCodeInput" maxlength="14" placeholder="VALD-XXXX-XXXX">
+          <button type="button" id="drawerCloudRestoreBtn">Utiliser ce code</button>
+        </div>
+      </div>
+
+      <div class="panel" id="drawerAmisPanel">
+        <p class="linkroom-config-titre">👥 Amis</p>
+        <p class="drawer-tag-info" id="drawerTagInfo"></p>
+        <div class="drawer-ami-ajout">
+          <input id="drawerAmiInput" maxlength="17" placeholder="Nom#1234">
+          <button type="button" id="drawerAmiAjouter">+ Ajouter</button>
+        </div>
+        <div id="drawerAmiListe"></div>
+      </div>
+
+      <div class="panel" id="drawerInfoPanel">
+        <p class="drawer-info-ligne">Vitesse : <strong id="ipsValue">...</strong> i/s <span class="drawer-info-sub">(GBA 59,7)</span></p>
+      </div>
+
+
+    </div>
+
+    <div class="mobile-controls" aria-label="Contrôles tactiles">
+      <div class="pad-row">
+        <div class="dpad" id="dpadZone" aria-label="Croix directionnelle">
+          <span class="d up" data-dir="UP">▲</span>
+          <span class="d left" data-dir="LEFT">◀</span>
+          <span class="d centre"></span>
+          <span class="d right" data-dir="RIGHT">▶</span>
+          <span class="d down" data-dir="DOWN">▼</span>
+        </div>
+        <div class="ab">
+          <button type="button" class="touch-btn action b" data-gba-key="B">B</button>
+          <button type="button" class="touch-btn action a" data-gba-key="A">A</button>
+        </div>
+      </div>
+      <div class="system-row">
+        <button type="button" class="touch-btn system" data-gba-key="SELECT">Select</button>
+        <button type="button" class="touch-btn system" data-gba-key="START">Start</button>
+        <span class="led2"></span>
+      </div>
+    </div>
+
+    <div id="raccourcisPanel" hidden>
+      <div class="raccourcis-card">
+        <h2>Raccourcis clavier</h2>
+        <div id="raccourcisListe"></div>
+        <div class="raccourcis-actions">
+          <button type="button" id="raccourcisDefaut">Défaut</button>
+          <button type="button" id="raccourcisFermer">Fermer</button>
+          <button type="button" id="raccourcisSauver">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cable Club : lobby de matchmaking -->
+    <div id="linkroomPanel" hidden>
+      <div class="linkroom-card">
+        <h2>⚔️ Cable Club</h2>
+        <div id="linkroomLobby">
+          <p class="linkroom-intro">Tu entres dans le Cable Club.<br>Que veux-tu faire ?</p>
+          <div class="linkroom-btns">
+            <button type="button" id="linkroomBtnAlea">⚔️ Combat aléatoire</button>
+            <button type="button" id="linkroomBtnAmi">⚔️ Défier un ami ▾</button>
+            <button type="button" id="linkroomBtnEchange">🔄 Échanger avec un ami ▾</button>
+          </div>
+          <div id="linkroomSectionAmis" hidden>
+            <div id="linkroomAmisListe"></div>
+          </div>
+        </div>
+        <div id="linkroomAttente" hidden>
+          <p id="linkroomAttenteTitre" class="linkroom-attente-titre" hidden>Recherche d'un adversaire</p>
+          <p id="linkroomAttenteMsg" class="linkroom-attente-msg">En attente…</p>
+          <p id="linkroomAttenteCompte" class="linkroom-attente-compte" hidden></p>
+          <button type="button" id="linkroomBtnAnnulerFile" class="linkroom-quitter" hidden>Annuler la recherche</button>
+        </div>
+        <button type="button" id="linkroomBtnAnnuler" class="linkroom-quitter">Quitter la salle</button>
+      </div>
+    </div>
+
+    <!-- Cable Club : notification de défi entrant -->
+    <div id="linkroomDefiPanel" hidden>
+      <div class="linkroom-defi-card">
+        <p><strong id="linkroomDefiNom">Dresseur</strong> <span id="linkroomDefiTexte">te défie en combat !</span></p>
+        <div class="linkroom-defi-btns">
+          <button type="button" id="linkroomBtnAccepter">✅ Accepter</button>
+          <button type="button" id="linkroomBtnRefuser">❌ Refuser</button>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" id="fullscreenBtn" class="fullscreen-btn" aria-label="Plein écran">⛶</button>
+
+    <div id="legendeZone">
+      <button type="button" id="legendeToggle" aria-label="Légende">?</button>
+      <div id="legendePanel" hidden>
+        <ul>
+          <li><span>🔊</span> Son on / off</li>
+          <li><span>⌨️</span> Raccourcis clavier</li>
+          <li><span>📍</span> Enregistrer la map Cable Club</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Emulateur gbajs2 (licence BSD, voir js/COPYING) servi depuis le depot :
+     plus de dependance CDN et son worker de rendu (js/video/worker.js) devient
+     utilisable. Aucune ROM incluse. -->
+<script>
+/* IodineGBA est desormais le moteur PAR DEFAUT (plus rapide). gbajs2 n'est
+   charge qu'en secours via ?core=gbajs2 (evite aussi le conflit de globals
+   GameBoyAdvanceIO). IodineGBA est charge a la demande par emulator-iodine.js. */
+(function(){
+  if (new URLSearchParams(location.search).get("core") !== "gbajs2") return;
+  var v = "?v=20260614d";
+  var f = ["js/util.js","js/core.js","js/arm.js","js/thumb.js","js/mmu.js","js/io.js","js/audio.js","js/video.js","js/video/proxy.js","js/video/software.js","js/irq.js","js/keypad.js","js/sio.js","js/savedata.js","js/gpio.js","js/gba.js","resources/biosbin.js"];
+  for (var i = 0; i < f.length; i++) document.write('<scr' + 'ipt src="' + f[i] + v + '"><\/scr' + 'ipt>');
+})();
+</script>
+<!-- Monde partage : Firebase Realtime Database (cles publiques par conception) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script src="assets/js/dom.js?v=20260614d"></script>
+<script src="assets/js/state.js?v=20260614d"></script>
+<script src="assets/js/audio.js?v=20260614o"></script>
+<script src="assets/js/emulator.js?v=20260614p"></script>
+<script src="assets/js/emulator-iodine.js?v=20260618d"></script>
+<script src="assets/js/position.js?v=20260614d"></script>
+<script src="assets/js/raccourcis.js?v=20260614d"></script>
+<script src="assets/js/tchat.js?v=20260618d"></script>
+<script src="assets/js/network.js?v=20260618a"></script>
+<script src="assets/js/siolink.js?v=20260618a"></script>
+<script src="assets/js/linkroom.js?v=20260618d"></script>
+<script src="assets/js/cloudsave.js?v=20260618g"></script>
+<script src="assets/js/sprites.js?v=20260614d"></script>
+<script src="assets/js/overlay.js?v=20260614m"></script>
+<script src="assets/js/debug.js?v=20260617a"></script>
+<script src="assets/js/roms.js?v=20260614q"></script>
+<script src="assets/js/app.js?v=20260618e"></script>
+<script src="assets/js/touch-controls.js?v=20260614d"></script>
+<script src="assets/js/fullscreen.js?v=20260614l"></script>
+</body>
+</html>

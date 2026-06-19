@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Valdoria - test IodineGBA</title>
+        <meta charset="UTF-8">
+		<meta name="viewport" content="width=160">
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+        <!--Required Scripts-->
+        <script src="IodineGBA/includes/TypedArrayShim.js"></script>
+        <script src="IodineGBA/core/Cartridge.js"></script>
+        <script src="IodineGBA/core/DMA.js"></script>
+        <script src="IodineGBA/core/Emulator.js"></script>
+        <script src="IodineGBA/core/Graphics.js"></script>
+        <script src="IodineGBA/core/RunLoop.js"></script>
+        <script src="IodineGBA/core/Memory.js"></script>
+        <script src="IodineGBA/core/IRQ.js"></script>
+        <script src="IodineGBA/core/JoyPad.js"></script>
+        <script src="IodineGBA/core/Serial.js"></script>
+        <script src="IodineGBA/core/Sound.js"></script>
+        <script src="IodineGBA/core/Timer.js"></script>
+        <script src="IodineGBA/core/Wait.js"></script>
+        <script src="IodineGBA/core/CPU.js"></script>
+        <script src="IodineGBA/core/Saves.js"></script>
+        <script src="IodineGBA/core/sound/FIFO.js"></script>
+        <script src="IodineGBA/core/sound/Channel1.js"></script>
+        <script src="IodineGBA/core/sound/Channel2.js"></script>
+        <script src="IodineGBA/core/sound/Channel3.js"></script>
+        <script src="IodineGBA/core/sound/Channel4.js"></script>
+        <script src="IodineGBA/core/CPU/ARM.js"></script>
+        <script src="IodineGBA/core/CPU/THUMB.js"></script>
+        <script src="IodineGBA/core/CPU/CPSR.js"></script>
+        <script src="IodineGBA/core/graphics/Renderer.js"></script>
+        <script src="IodineGBA/core/graphics/RendererShim.js"></script>
+        <script src="IodineGBA/core/graphics/RendererProxy.js"></script>
+        <script src="IodineGBA/core/graphics/BGTEXT.js"></script>
+        <script src="IodineGBA/core/graphics/BG2FrameBuffer.js"></script>
+        <script src="IodineGBA/core/graphics/BGMatrix.js"></script>
+        <script src="IodineGBA/core/graphics/AffineBG.js"></script>
+        <script src="IodineGBA/core/graphics/ColorEffects.js"></script>
+        <script src="IodineGBA/core/graphics/Mosaic.js"></script>
+        <script src="IodineGBA/core/graphics/OBJ.js"></script>
+        <script src="IodineGBA/core/graphics/OBJWindow.js"></script>
+        <script src="IodineGBA/core/graphics/Window.js"></script>
+        <script src="IodineGBA/core/graphics/Compositor.js"></script>
+        <script src="IodineGBA/core/memory/DMA0.js"></script>
+        <script src="IodineGBA/core/memory/DMA1.js"></script>
+        <script src="IodineGBA/core/memory/DMA2.js"></script>
+        <script src="IodineGBA/core/memory/DMA3.js"></script>
+        <script src="IodineGBA/core/cartridge/SaveDeterminer.js"></script>
+        <script src="IodineGBA/core/cartridge/SRAM.js"></script>
+        <script src="IodineGBA/core/cartridge/FLASH.js"></script>
+        <script src="IodineGBA/core/cartridge/EEPROM.js"></script>
+        <script src="IodineGBA/core/cartridge/GPIO.js"></script>
+        <!--Add your webpage scripts below-->
+        <script src="user_scripts/AudioGlueCode.js"></script>
+        <script src="user_scripts/base64.js"></script>
+        <script src="user_scripts/CoreGlueCode.js"></script>
+        <script src="user_scripts/GfxGlueCode.js"></script>
+        <script src="user_scripts/GUIGlueCode.js"></script>
+        <script src="user_scripts/JoyPadGlueCode.js"></script>
+        <script src="user_scripts/ROMLoadGlueCode.js"></script>
+        <script src="user_scripts/SavesGlueCode.js"></script>
+        <script src="user_scripts/WorkerGfxGlueCode.js"></script>
+        <script src="user_scripts/WorkerGlueCode.js"></script>
+        <script src="user_scripts/XAudioJS/swfobject.js"></script>
+        <script src="user_scripts/XAudioJS/resampler.js"></script>
+        <script src="user_scripts/XAudioJS/XAudioServer.js"></script>
+        <link rel="stylesheet" href="user_css/main.css">
+        <style>
+      /* override Valdoria : canvas responsive + tactile lisible (mobile) */
+      html,body{margin:0;background:#120a1e;color:#eee;font-family:system-ui,sans-serif}
+      #main{display:flex;justify-content:center;padding:8px}
+      #emulator_target{width:100%;max-width:520px;height:auto;image-rendering:pixelated;background:#000;border-radius:8px}
+      .touch-controls{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:14px 8px}
+      .touch-controls button{min-width:54px;min-height:54px;font-size:18px;margin:3px;border-radius:10px}
+      #menu, #menu ul{list-style:none;padding:6px;margin:0}
+      #tempMessage{display:block;text-align:center;color:#ffcb05}
+      #main{height:auto !important;padding:8px;display:block}
+      #emulator_target{width:100% !important;max-width:480px !important;height:auto !important;aspect-ratio:3 / 2 !important;display:block;margin:0 auto}
+      /* mobile : le menu deroulant au survol est inutilisable au toucher -> tout visible */
+      .menu, .menu li { display:block !important; }
+      .menu > li { border-top:1px solid rgba(255,255,255,.08); padding:6px; }
+      .menu ul { display:block !important; position:static !important; box-shadow:none !important; background:rgba(255,255,255,.05) !important; margin:4px 0 4px 14px !important; }
+      .files { font-size:15px; padding:6px 0; }
+      #play,#pause,#restart,#fullscreen { display:inline-block; background:#e3350d; color:#fff; padding:8px 16px; border-radius:8px; margin:4px; cursor:pointer; }
+    </style>
+</head>
+    <body>
+<input id="playerName" hidden>
+<p id="friendInfo" hidden></p>
+<canvas id="overlay" width="480" height="320" style="position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:5;image-rendering:pixelated;background:transparent !important;border:0;outline:0"></canvas>
+        <div id="container">
+            <div id="menu" class="paused">
+                <ul class="menu" id="menu_top">
+                    <li>
+                        File
+                        <ul>
+                            <li><span>BIOS: </span> <input type="file" id="bios_load" class="files"></li>
+                            <li><span>Game: </span> <input type="file" id="rom_load" class="files"></li>
+                        </ul>
+                    </li>
+                    <li id="play" class="show">Play</li>
+                    <li id="pause" class="hide">Pause</li>
+                    <li id="restart">Restart</li>
+                    <li>
+                        Settings
+                        <ul>
+                            <li>
+                                <input type="checkbox" id="skip_boot"> Skip Boot Intro
+                            </li>
+                            <li>
+                                <input type="checkbox" id="toggleSmoothScaling" checked="checked"> Smooth Scaling
+                            </li>
+                            <li>
+                                <input type="checkbox" id="toggleDynamicSpeed"> Dynamic Speed
+                            </li>
+                            <li>
+                                <input type="checkbox" id="offthread-cpu" checked="checked"> CPU off-thread
+                            </li>
+                            <li>
+                                <input type="checkbox" id="offthread-gpu" checked="checked"> GPU off-thread
+                            </li>
+                            <li>
+                                <input type="checkbox" id="sound"> Sound
+                            </li>
+                            <li>
+                                GBA Bindings
+                                <ul>
+                                    <li id="key_a">
+                                        <span>A</span>
+                                    </li>
+                                    <li id="key_b">
+                                        <span>B</span>
+                                    </li>
+                                    <li id="key_l">
+                                        <span>L</span>
+                                    </li>
+                                    <li id="key_r">
+                                        <span>R</span>
+                                    </li>
+                                    <li id="key_start">
+                                        <span>Start</span>
+                                    </li>
+                                    <li id="key_select">
+                                        <span>Select</span>
+                                    </li>
+                                    <li id="key_up">
+                                        <span>↑</span>
+                                    </li>
+                                    <li id="key_down">
+                                        <span>↓</span>
+                                    </li>
+                                    <li id="key_left">
+                                        <span>←</span>
+                                    </li>
+                                    <li id="key_right">
+                                        <span>→</span>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                Emulator Bindings
+                                <ul>
+                                    <li id="key_volumeup">
+                                        <span>Volume Up</span>
+                                    </li>
+                                    <li id="key_volumedown">
+                                        <span>Volume Down</span>
+                                    </li>
+                                    <li id="key_speedup">
+                                        <span>Speed Up</span>
+                                    </li>
+                                    <li id="key_slowdown">
+                                        <span>Slow Down</span>
+                                    </li>
+                                    <li id="key_speedreset">
+                                        <span>Speed Reset</span>
+                                    </li>
+                                    <li id="key_fullscreen">
+                                        <span>Fullscreen</span>
+                                    </li>
+                                    <li id="key_playpause">
+                                        <span>Play/Pause</span>
+                                    </li>
+                                    <li id="key_restart">
+                                        <span>Restart</span>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        Volume
+                        <ul>
+                            <li>
+                                <input type="range" id="volume">
+                            </li>
+                        </ul>
+                    </li>
+                    <li id="saves_menu">
+                        Saves
+                        <ul id="saves_menu_container">
+                            <li>
+                                <span>Import:</span><input type="file" id="import" class="files">
+                            </li>
+                            <li id="existing_saves">
+                                <span>Existing Saves</span>
+                                <ul id="existing_saves_list">
+
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="./" id="export" target="_new">Export All Saves</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li id="fullscreen">Fullscreen</li>
+                    <li>
+                        <span id="speed">Speed</span>
+                        <ul>
+                            <li>
+                                <input type="range" id="speedset">
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div id="main">
+                <canvas class="canvas" id="emulator_target" width="240" height="160"></canvas>
+            </div>
+            <div class="touch-controls">
+                <div class="touch-dpad">
+                    <button id="touch-up">↑</button><br>
+                    <button id="touch-left">←</button>
+                    <button id="touch-right">→</button><br>
+                    <button id="touch-down">↓</button>
+                </div>
+                <div class="touch-buttons">
+                    <button id="touch-select">SELECT</button> 
+                    <button id="touch-start">START</button>
+                </div>
+                <div class="touch-buttons">
+                    <button id="touch-a">A</button>
+                    <button id="touch-b">B</button><br>
+                    <button id="touch-l">L</button>
+                    <button id="touch-r">R</button>
+                </div>
+            </div>
+            <span class="message" id="tempMessage"></span>
+        </div>
+    <script>
+window.addEventListener("load", function () {
+  var n = 0, iv = setInterval(function () {
+    if (typeof IodineGUI !== "undefined" && IodineGUI.Iodine) {
+      try {
+        IodineGUI.defaults.skipBoot = true;
+        if (typeof setValue === "function") { setValue("skipBoot", true); }
+        IodineGUI.Iodine.toggleSkipBootROM(true);
+        var cb = document.getElementById("skip_boot"); if (cb) { cb.checked = true; }
+      } catch (e) {}
+      clearInterval(iv);
+    } else if (++n > 60) { clearInterval(iv); }
+  }, 100);
+});
+</script>
+<script>
+(function(){
+  var d=document.createElement("div");
+  d.id="vd-diag";
+  d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.88);color:#0f0;font:13px/1.4 monospace;padding:8px;white-space:pre-wrap";
+  var frames=0, logs=[];
+  function show(){
+    var playing=(typeof IodineGUI!=="undefined")?IodineGUI.isPlaying:"?";
+    d.textContent="[DIAG] isPlaying:"+playing+" | images rendues:"+frames+"\n"+logs.slice(-5).join("\n");
+  }
+  window.onerror=function(m,src,l){ logs.push("ERREUR: "+m+" @"+(src||"")+":"+l); show(); return false; };
+  window.addEventListener("load", function(){
+    document.body.appendChild(d); show();
+    var rl=document.getElementById("rom_load");
+    if(rl){ rl.addEventListener("change", function(){
+      var f=this.files&&this.files[0];
+      logs.push("ROM choisie: "+(f?(f.name+" "+Math.round(f.size/1024)+" Ko"):"aucune"));
+      show();
+      setTimeout(function(){ try{ IodineGUI.Iodine.play(); logs.push("play() appele"); }catch(e){ logs.push("play err: "+e); } show(); }, 900);
+    }); }
+  });
+  var hooked=false;
+  setInterval(function(){
+    if(typeof IodineGUI!=="undefined" && IodineGUI.Blitter && !hooked && IodineGUI.Blitter.attachGfxPostCallback){
+      try{ IodineGUI.Blitter.attachGfxPostCallback(function(){ frames++; }); hooked=true; logs.push("compteur d'images branche"); }catch(e){ logs.push("hook err: "+e); }
+    }
+    show();
+  }, 500);
+})();
+</script>
+<script>
+(function(){
+  /* IodineGBA exige un BIOS pour booter. On telecharge le BIOS open-source
+     (Cult-of-GBA, MIT) embarque, et on l'attache avant le lancement. */
+  var n=0, iv=setInterval(function(){
+    if (typeof IodineGUI!=="undefined" && IodineGUI.Iodine && typeof downloadFile==="function" && typeof attachBIOS==="function") {
+      clearInterval(iv);
+      try { downloadFile("gba_bios.bin", function(){ try{ processDownload(this, attachBIOS); }catch(e){} }); } catch(e){}
+    } else if (++n>100) { clearInterval(iv); }
+  }, 80);
+})();
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="../assets/js/dom.js"></script>
+<script src="../assets/js/state.js"></script>
+<script src="../assets/js/sprites.js"></script>
+<script src="../assets/js/position.js"></script>
+<script src="../assets/js/network.js"></script>
+<script src="../assets/js/overlay.js"></script>
+<script>
+(function(){
+  var eb=document.createElement("div");
+  eb.style.cssText="position:fixed;bottom:0;left:0;right:0;z-index:100050;background:#b00020;color:#fff;font:12px/1.4 monospace;padding:6px;white-space:pre-wrap;display:none";
+  window.addEventListener("load",function(){ document.body.appendChild(eb); });
+  function show(t){ eb.style.display="block"; eb.textContent="[ERREUR] "+t; }
+  window.addEventListener("error",function(e){ show((e.message||(e.error&&e.error.message)||"?")+"  @ "+(e.filename||"").split("/").pop()+":"+(e.lineno||"")); });
+  window.addEventListener("unhandledrejection",function(e){ show("promise: "+((e.reason&&e.reason.message)||e.reason||"?")); });
+})();
+</script>
+<script>
+(function(){
+  var V=window.Valdoria;
+  function mem(){ try{ var i=IodineGUI.Iodine; return (i&&i.IOCore&&i.IOCore.memory&&i.IOCore.memory.internalRAM)?i.IOCore.memory:null; }catch(e){ return null; } }
+  function r8(m,a){ a>>>=0; if(!m)return 0; if(a>=0x03000000&&a<0x03008000)return m.internalRAM[a&0x7FFF]||0; if(a>=0x02000000&&a<0x02040000)return m.externalRAM[a&0x3FFFF]||0; return 0; }
+  V.state.gba={ rom:null, mmu:{ cart:{code:"BPRF",title:"valdoria"},
+    load32:function(a){ var m=mem(); return (r8(m,a)|(r8(m,a+1)<<8)|(r8(m,a+2)<<16)|(r8(m,a+3)<<24))>>>0; },
+    loadU16:function(a){ var m=mem(); return r8(m,a)|(r8(m,a+1)<<8); },
+    loadU8:function(a){ return r8(mem(),a); } } };
+  var box=document.createElement("div");
+  box.style.cssText="position:fixed;top:0;left:0;right:0;z-index:100001;background:rgba(0,0,50,.92);color:#9fd0ff;font:12px/1.4 monospace;padding:5px;white-space:pre-wrap";
+  window.addEventListener("load",function(){
+    document.body.appendChild(box);
+    var ov=document.getElementById("overlay"), tg=document.getElementById("emulator_target");
+    function sync(){ if(ov&&tg){ var r=tg.getBoundingClientRect(); if(r.width>0){ ov.style.left=r.left+"px"; ov.style.top=r.top+"px"; ov.style.width=r.width+"px"; ov.style.height=r.height+"px"; } } requestAnimationFrame(sync); }
+    requestAnimationFrame(sync);
+    if(V.overlay&&V.overlay.drawOverlay) requestAnimationFrame(V.overlay.drawOverlay);
+  });
+  var MP={loopId:null,connected:false};
+  MP.connect=function(){ try{ if(V.network&&!MP.connected){ V.network.connectWorld(); MP.connected=true; } }catch(e){} };
+  MP.startLoop=function(){ if(MP.loopId) return; MP.loopId=setInterval(function(){
+      var m=mem(); V.state.gba.rom=m?true:null;
+      try{ var c=IodineGUI.Iodine.IOCore.cartridge; if(c&&c.name) V.state.gba.mmu.cart.code=c.name; }catch(e){}
+      if(m&&V.position){ try{ V.state.myPos=V.position.readMyPos(); V.state.surCarte=V.position.estSurCarte(); if(V.state.myPos&&V.network) V.network.sendPos(V.state.myPos); }catch(e){} }
+    },200); };
+  MP.stopLoop=function(){ if(MP.loopId){ clearInterval(MP.loopId); MP.loopId=null; } };
+  window.MP=MP; window.OV={hide:function(){var o=document.getElementById("overlay");if(o)o.style.display="none";},show:function(){var o=document.getElementById("overlay");if(o)o.style.display="block";}};
+  setInterval(function(){
+    var me=V.state.myPos, ids=Object.keys(V.state.joueurs||{});
+    var au=ids.map(function(id){ var j=V.state.joueurs[id]; var ici=(me&&j.g===me.g&&j.m===me.m)?" [ICI]":""; return (j.nom||"?")+" m"+j.g+"."+j.m+ici; });
+    box.textContent="[MULTI] firebase:"+(MP.connected?"oui":"non")+" boucle:"+(MP.loopId?"ON":"off")
+      +" | MOI: "+(me?("x="+me.x+" y="+me.y+" map "+me.g+"."+me.m):"(marche en jeu)")
+      +" | AUTRES("+au.length+"): "+(au.join(", ")||"aucun");
+  },500);
+  window.addEventListener("load",function(){ setTimeout(function(){ MP.connect(); MP.startLoop(); }, 7000); });
+})();
+</script>
+</body>
+</html>
