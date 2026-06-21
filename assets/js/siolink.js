@@ -21,9 +21,10 @@
     { urls: "stun:stun1.l.google.com:19302" }
   ];
   const BASE   = "monde/sessions/";
-  const TIMEOUT_MS = 30000;   // 30 s pour établir la connexion
+  const TIMEOUT_MS = 120000;   // 2 min : laisse le temps de coordonner 2 appareils (créer puis rejoindre)
 
   let db        = null;
+  let dbgN      = 0;          // diag : log des premiers mots echanges
   let sessionId = null;
   let isMaster  = false;
   let pc        = null;
@@ -54,12 +55,14 @@
         if (this.envoye) return;
         this.envoye = true;
         const mot = s.SIODATA8 & 0xFFFF;
+        if (dbgN < 80) { console.log("[sio] M> 0x" + mot.toString(16)); dbgN++; }
         if (channel && channel.readyState === "open") channel.send(JSON.stringify({ t: "mlt", d: mot }));
       },
       // Reception d'un mot du pair -> on complete le transfert (+ IRQ).
       onMot: function (motDistant) {
         const s = this.serial; if (!s) return;
         const motLocal = s.SIODATA8 & 0xFFFF;
+        if (dbgN < 120) { console.log("[sio] " + (this.isMaster ? "M" : "S") + "< recu=0x" + (motDistant>>>0).toString(16) + " local=0x" + motLocal.toString(16) + " irq=" + (s.SIOCNT_IRQ ? 1 : 0)); dbgN++; }
         if (this.isMaster) { s.linkComplete(motLocal, motDistant); this.envoye = false; }
         else { s.linkComplete(motDistant, motLocal); if (channel && channel.readyState === "open") channel.send(JSON.stringify({ t: "mlt", d: motLocal })); }
         this.nb = (this.nb + 1) | 0;

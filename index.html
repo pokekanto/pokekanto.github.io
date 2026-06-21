@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="assets/img/onglet.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=20260618x">
+<link rel="stylesheet" href="assets/css/main.css?v=20260620e">
 </head>
 <body>
 <video id="bgVideo" class="bg-video" autoplay loop muted playsinline>
@@ -40,6 +40,10 @@
   <section id="play">
     <div class="mobile-hud" aria-label="Menus mobiles">
       <button type="button" id="mobileValdoriaBtn">PokéKanto</button>
+      <div class="mobile-hud-actions">
+        <button type="button" class="topbtn js-ech-open" title="Échange" aria-label="Échange">🔁<span class="echange-badge js-ech-badge" hidden></span></button>
+        <button type="button" class="topbtn js-combat" title="Combat (bientôt)" aria-label="Combat">⚔️</button>
+      </div>
     </div>
 
     <div id="settingsBar" class="top-bar">
@@ -47,6 +51,10 @@
       <div id="volControl" class="vol-control">
         <span class="vol-icon">🔊</span>
         <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="100" aria-label="Volume">
+      </div>
+      <div class="top-actions">
+        <button type="button" class="topbtn js-ech-open" title="Échange PokéKanto" aria-label="Échange">🔁<span class="echange-badge js-ech-badge" hidden></span></button>
+        <button type="button" class="topbtn js-combat" title="Combat (bientôt)" aria-label="Combat">⚔️</button>
       </div>
     </div>
     <div id="screenZone">
@@ -189,9 +197,18 @@
             <button type="button" id="linkroomBtnAlea">⚔️ Combat aléatoire</button>
             <button type="button" id="linkroomBtnAmi">⚔️ Défier un ami ▾</button>
             <button type="button" id="linkroomBtnEchange">🔄 Échanger avec un ami ▾</button>
+            <button type="button" id="linkroomBtnPrive">🔗 Salon privé (par code) ▾</button>
           </div>
           <div id="linkroomSectionAmis" hidden>
             <div id="linkroomAmisListe"></div>
+          </div>
+          <div id="linkroomSectionPrive" hidden>
+            <button type="button" id="linkroomBtnCreer">➕ Créer un salon</button>
+            <p id="linkroomCodeAffiche" class="linkroom-code" hidden></p>
+            <div class="linkroom-prive-join">
+              <input id="linkroomCodeInput" maxlength="4" placeholder="CODE" autocomplete="off">
+              <button type="button" id="linkroomBtnRejoindre">Rejoindre</button>
+            </div>
           </div>
         </div>
         <div id="linkroomAttente" hidden>
@@ -212,6 +229,62 @@
           <button type="button" id="linkroomBtnAccepter">✅ Accepter</button>
           <button type="button" id="linkroomBtnRefuser">❌ Refuser</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Échange PokéKanto : donner / recevoir un Pokémon via Firebase (sans câble) -->
+    <div id="echangeBackdrop" class="echange-backdrop" hidden></div>
+    <div id="echangePanel" hidden>
+      <div class="echange-card">
+        <h2>🔄 Échange PokéKanto</h2>
+        <div class="echange-onglets">
+          <button type="button" id="echangeTabEnvoyer" class="actif">Envoyer</button>
+          <button type="button" id="echangeTabRecus">Reçus <span id="echangeBadgeOnglet" class="echange-badge" hidden></span></button>
+          <button type="button" id="echangeTabDirect">🤝 En direct <span id="echangeBadgeOngletDirect" class="echange-badge" hidden></span></button>
+        </div>
+        <div id="echangeSectionEnvoyer">
+          <p class="echange-hint">Choisis un Pokémon de ton équipe :</p>
+          <div id="echangeEquipe"></div>
+          <p class="echange-hint">À envoyer à :</p>
+          <select id="echangeAmiSelect"></select>
+          <div class="echange-ou">ou un tag : <input id="echangeTagInput" maxlength="17" placeholder="Nom#1234" autocomplete="off"></div>
+          <button type="button" id="echangeBtnEnvoyer" class="echange-action" disabled>Envoyer ce Pokémon</button>
+          <p id="echangeStatut" class="echange-statut"></p>
+        </div>
+        <div id="echangeSectionRecus" hidden>
+          <div id="echangeRecusListe"></div>
+          <p id="echangeStatut2" class="echange-statut"></p>
+        </div>
+        <div id="echangeSectionDirect" hidden>
+          <div id="echangeDirectIdle">
+            <p class="echange-hint">Échange en direct — vous devez être en ligne tous les deux :</p>
+            <select id="echangeDirectAmi"></select>
+            <div class="echange-ou">ou un tag : <input id="echangeDirectTag" maxlength="17" placeholder="Nom#1234" autocomplete="off"></div>
+            <button type="button" id="echangeDirectInviter" class="echange-action">Inviter à échanger</button>
+            <div class="echange-ou">ou rejoindre par code : <input id="echangeDirectCode" maxlength="5" placeholder="CODE" autocomplete="off"> <button type="button" id="echangeDirectRejoindre" class="echange-mini-btn">Rejoindre</button></div>
+            <div id="echangeInvitesWrap" hidden>
+              <p class="echange-hint">Invitations reçues :</p>
+              <div id="echangeInvitesListe"></div>
+            </div>
+          </div>
+          <div id="echangeDirectRoom" hidden>
+            <p id="echangeRoomTitre" class="echange-room-titre"></p>
+            <div class="echange-duo">
+              <div class="echange-slot"><p class="echange-slot-tete">Toi</p><div id="echangeSlotMoi" class="echange-slot-mon"><span class="echange-attente">à déposer…</span></div></div>
+              <div class="echange-vs">⇄</div>
+              <div class="echange-slot"><p id="echangeSlotSonTete" class="echange-slot-tete">Lui</p><div id="echangeSlotSon" class="echange-slot-mon"><span class="echange-attente">en attente…</span></div></div>
+            </div>
+            <div id="echangeDirectChoix">
+              <p class="echange-hint">Ton Pokémon à déposer :</p>
+              <div id="echangeDirectEquipe"></div>
+              <button type="button" id="echangeBtnDeposer" class="echange-action" disabled>Déposer</button>
+            </div>
+            <button type="button" id="echangeBtnValider" class="echange-recevoir" hidden>✅ Valider l'échange</button>
+            <p id="echangeRoomStatut" class="echange-statut"></p>
+            <button type="button" id="echangeBtnQuitterSalon" class="echange-fermer">Annuler / Quitter le salon</button>
+          </div>
+        </div>
+        <button type="button" id="echangeBtnFermer" class="echange-fermer">Fermer</button>
       </div>
     </div>
 
@@ -252,14 +325,15 @@
 <script src="assets/js/state.js?v=20260614d"></script>
 <script src="assets/js/audio.js?v=20260614o"></script>
 <script src="assets/js/emulator.js?v=20260614p"></script>
-<script src="assets/js/emulator-iodine.js?v=20260618d"></script>
+<script src="assets/js/emulator-iodine.js?v=20260618h"></script>
 <script src="assets/js/position.js?v=20260614d"></script>
 <script src="assets/js/raccourcis.js?v=20260614d"></script>
 <script src="assets/js/tchat.js?v=20260618d"></script>
-<script src="assets/js/network.js?v=20260618a"></script>
-<script src="assets/js/siolink.js?v=20260618a"></script>
-<script src="assets/js/linkroom.js?v=20260618d"></script>
+<script src="assets/js/network.js?v=20260620a"></script>
+<script src="assets/js/siolink.js?v=20260618e"></script>
+<script src="assets/js/linkroom.js?v=20260618f"></script>
 <script src="assets/js/cloudsave.js?v=20260618g"></script>
+<script src="assets/js/echange.js?v=20260620g"></script>
 <script src="assets/js/sprites.js?v=20260614d"></script>
 <script src="assets/js/overlay.js?v=20260614m"></script>
 <script src="assets/js/debug.js?v=20260617a"></script>

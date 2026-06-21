@@ -468,6 +468,27 @@
     if (monRef && tag) monRef.update({ tag });
   }
 
+  /* ---- Salon privé (liaison directe par code) ---------------- */
+  function genCodeSalon() {
+    var c = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = "";
+    for (var i = 0; i < 4; i++) s += c.charAt(Math.floor(Math.random() * c.length));
+    return s;
+  }
+  function creerSalonPrive() {
+    var code = genCodeSalon();
+    lancerSioLink("priv-" + code, true, modeDefi);
+    // afficherConnexion (dans lancerSioLink) masque le lobby -> on remet le code
+    // dans l'ecran d'attente, qui reste visible jusqu'a la connexion.
+    var msg = el("linkroomAttenteMsg");
+    if (msg) msg.textContent = "Salon créé — Code : " + code + " (donne-le à l'autre joueur, puis attendez la connexion…)";
+  }
+  function rejoindreSalonPrive() {
+    var inp = el("linkroomCodeInput");
+    var code = ((inp && inp.value) || "").trim().toUpperCase();
+    if (!/^[A-Z0-9]{4}$/.test(code)) { if (inp) { inp.value = ""; inp.placeholder = "Code à 4 caractères"; } return; }
+    lancerSioLink("priv-" + code, false, modeDefi);
+  }
+
   /* ---- Bindings UI ------------------------------------------- */
   function initUI() {
     const btnAlea     = el("linkroomBtnAlea");
@@ -498,6 +519,17 @@
       rafraichirAmis();
       secAmis.removeAttribute("hidden");
     });
+
+    const btnPrive = el("linkroomBtnPrive");
+    const secPrive = el("linkroomSectionPrive");
+    if (btnPrive && secPrive) btnPrive.addEventListener("click", () => {
+      if (secPrive.hasAttribute("hidden")) secPrive.removeAttribute("hidden");
+      else secPrive.setAttribute("hidden", "");
+    });
+    const btnCreer = el("linkroomBtnCreer");
+    if (btnCreer) btnCreer.addEventListener("click", creerSalonPrive);
+    const btnRejoindre = el("linkroomBtnRejoindre");
+    if (btnRejoindre) btnRejoindre.addEventListener("click", rejoindreSalonPrive);
 
     if (btnAnnuler) btnAnnuler.addEventListener("click", () => {
       partir();

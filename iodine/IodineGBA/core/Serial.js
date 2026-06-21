@@ -148,9 +148,10 @@ GameBoyAdvanceSerial.prototype.linkComplete = function (word0, word1) {
     this.SIODATA_D = 0xFFFF;
     this.SIOCOMMERROR = false;
     this.SIOTransferStarted = false;
-    if ((this.SIOCNT_IRQ | 0) != 0) {
-        this.IOCore.irq.requestIRQ(0x80);
-    }
+    //Valdoria : pont actif -> on declenche TOUJOURS l'IRQ serie. Le code de Rouge Feu
+    //(decompilation : SerialCB -> DoHandshake) ne traite la liaison QUE sur cette IRQ ;
+    //l'esclave abandonne apres 10 frames sans IRQ. Le gate IE/IME du jeu protege de toute facon.
+    this.IOCore.irq.requestIRQ(0x80);
 }
 GameBoyAdvanceSerial.prototype.clockUART = function () {
     this.serialBitsShifted = ((this.serialBitsShifted | 0) + 1) | 0;
@@ -294,6 +295,12 @@ GameBoyAdvanceSerial.prototype.readSIOCNT0 = function () {
                 return ((this.SIOTransferStarted) ? 0x80 : 0) | 0x74 | this.SIOCNT0_DATA;
             //Multiplayer:
             case 2:
+                //Valdoria : pont WebRTC actif -> on signale la liaison etablie, sinon le jeu
+                //reste bloque sur "Veuillez patienter". bit3 (SD)=tous les GBA prets ;
+                //bit2 (SI)=0 parent (joueur 0) / 1 enfant (joueurs 1-3).
+                if ((typeof window !== "undefined") && window.ValdoriaLink && window.ValdoriaLink.actif) {
+                    return ((this.SIOTransferStarted) ? 0x80 : 0) | 0x8 | (((this.SIOMULT_PLAYER_NUMBER | 0) == 0) ? 0 : 0x4) | (this.SIOMULT_PLAYER_NUMBER << 4) | this.SIOBaudRate;
+                }
                 return ((this.SIOTransferStarted) ? 0x80 : 0) | ((this.SIOCOMMERROR) ? 0x40 : 0) | (this.SIOMULT_PLAYER_NUMBER << 4) | this.SIOBaudRate;
             //UART:
             case 3:

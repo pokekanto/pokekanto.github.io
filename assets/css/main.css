@@ -285,6 +285,12 @@ main { max-width:840px; margin:0 auto; padding:12px 16px 32px; }
 .linkroom-ami-btn:last-child { margin-bottom:0; }
 .linkroom-ami-btn:hover { background:#f0eaf8; }
 .linkroom-ami-btn:active { background:#e8e0f4; }
+#linkroomSectionPrive { margin-bottom:10px; display:flex; flex-direction:column; gap:6px; }
+#linkroomBtnCreer { background:linear-gradient(180deg,var(--violet),var(--violet2)); color:#fff; border:none; border-radius:10px; padding:9px; font-size:.85rem; font-weight:700; cursor:pointer; box-shadow:0 3px 0 var(--violet3); }
+.linkroom-code { font-weight:700; text-align:center; background:#f0eaf8; border:2px dashed var(--violet2); border-radius:8px; padding:6px; margin:0; letter-spacing:2px; color:var(--texte-sombre); }
+.linkroom-prive-join { display:flex; gap:6px; }
+.linkroom-prive-join input { flex:1; text-transform:uppercase; text-align:center; letter-spacing:3px; font-weight:700; padding:7px; border-radius:8px; border:2px solid var(--bordure); color:var(--texte-sombre); }
+.linkroom-prive-join button { background:linear-gradient(180deg,#3c78ff,#2255cc); color:#fff; border:none; border-radius:8px; padding:7px 12px; font-weight:700; cursor:pointer; box-shadow:0 2px 0 #163a8e; }
 .linkroom-tag-label { font-size:.7rem; color:var(--muted); font-weight:400; }
 
 .linkroom-attente-msg { font-size:.87rem; color:var(--violet2); font-weight:700;
@@ -799,3 +805,103 @@ body.is-playing #legendeZone {
 #legendePanel ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px; }
 #legendePanel li { display:flex; align-items:center; gap:9px; font-size:.78rem; color:rgba(255,255,255,.8); }
 #legendePanel li span { font-size:1rem; flex-shrink:0; }
+
+/* ---------- Échange PokéKanto (donner / recevoir un Pokémon) ---------- */
+.echange-badge { display:inline-block; min-width:16px; height:16px; line-height:16px; padding:0 4px;
+  margin-left:3px; background:var(--rouge); color:#fff; border-radius:9px; font-size:.62rem; font-weight:700;
+  text-align:center; vertical-align:top; }
+.echange-badge[hidden] { display:none; }
+
+#echangePanel { position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center;
+  background:rgba(10,6,18,.8); backdrop-filter:blur(3px); }
+#echangePanel[hidden] { display:none; }
+#echangeBackdrop { display:none; }
+
+.echange-card { background:var(--panneau); color:var(--texte-sombre); border:3px solid var(--bordure);
+  border-radius:14px; padding:20px; width:min(360px,93vw); max-height:88vh; overflow-y:auto;
+  box-shadow:0 24px 70px rgba(0,0,0,.6); text-align:center; }
+.echange-card h2 { font-family:"Press Start 2P",monospace; font-size:.7rem; color:var(--violet2); margin:0 0 14px; }
+
+.echange-onglets { display:flex; gap:6px; margin-bottom:12px; }
+.echange-onglets button { flex:1; background:#eee8f8; border:1px solid var(--creme2); border-radius:8px;
+  padding:8px; font-weight:700; font-size:.82rem; color:var(--muted); cursor:pointer; }
+.echange-onglets button.actif { background:linear-gradient(180deg,var(--violet),var(--violet2)); color:#fff;
+  border-color:var(--violet2); }
+
+.echange-hint { font-size:.8rem; color:var(--texte-sombre); font-weight:700; margin:10px 0 6px; text-align:left; }
+
+#echangeEquipe { display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto; }
+.echange-mon { display:flex; align-items:center; gap:9px; width:100%; background:#fff; border:2px solid var(--creme2);
+  border-radius:9px; padding:9px 11px; cursor:pointer; font-weight:700; color:var(--texte-sombre); text-align:left; }
+.echange-mon:hover { background:#f3eefb; }
+.echange-mon.choisi { border-color:var(--violet2); background:#ece2fb; box-shadow:0 0 0 2px rgba(123,92,198,.35); }
+.echange-mon:disabled { opacity:.45; cursor:not-allowed; }
+.echange-mon-pt { width:13px; height:13px; border-radius:50%; flex:0 0 auto;
+  background:radial-gradient(circle at 50% 38%, #fff 0 2px, var(--rouge) 2px 6px, #fff 6px 7px, var(--rouge) 7px 100%);
+  border:1px solid var(--texte-sombre); }
+.echange-mon-nom { flex:1; font-size:.86rem; }
+.echange-mon-niv { font-size:.74rem; color:var(--muted); font-weight:700; }
+
+#echangeAmiSelect { width:100%; padding:9px; border:2px solid var(--bordure); border-radius:8px;
+  font-size:.85rem; font-weight:700; color:var(--texte-sombre); background:#fff; }
+.echange-ou { font-size:.76rem; color:var(--muted); margin:8px 0 4px; text-align:left; }
+.echange-ou input { width:130px; padding:5px 7px; border:1px solid var(--creme2); border-radius:6px;
+  font-size:.8rem; margin-left:4px; }
+
+.echange-action { display:block; width:100%; margin-top:12px; background:linear-gradient(180deg,var(--violet),var(--violet2));
+  color:#fff; border:none; border-radius:10px; padding:12px; font-weight:700; font-size:.9rem; cursor:pointer;
+  box-shadow:0 3px 0 var(--violet3); }
+.echange-action:active { transform:translateY(2px); box-shadow:0 1px 0 var(--violet3); }
+.echange-action:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+
+.echange-statut { font-size:.82rem; color:var(--violet2); font-weight:700; margin:12px 0 0; line-height:1.45; min-height:1em; }
+
+#echangeRecusListe { display:flex; flex-direction:column; gap:7px; min-height:40px; }
+.echange-recu { display:flex; align-items:center; gap:9px; background:#fff; border:2px solid var(--creme2);
+  border-radius:9px; padding:9px 11px; text-align:left; }
+.echange-recu-info { flex:1; font-size:.82rem; color:var(--texte-sombre); line-height:1.35; }
+.echange-recu-de { font-size:.72rem; color:var(--muted); }
+.echange-recevoir { background:linear-gradient(180deg,#37b24d,#2b8a3e); color:#fff; border:none; border-radius:8px;
+  padding:8px 13px; font-weight:700; font-size:.8rem; cursor:pointer; box-shadow:0 2px 0 #1d6029; }
+.echange-recevoir:active { transform:translateY(1px); box-shadow:none; }
+
+.echange-vide { font-size:.82rem; color:var(--muted); text-align:center; padding:10px 0; line-height:1.5; }
+.echange-fermer { background:none; border:1px solid var(--creme2); border-radius:8px; padding:9px 18px;
+  font-size:.8rem; color:var(--muted); cursor:pointer; margin-top:14px; }
+.echange-fermer:hover { background:rgba(0,0,0,.04); }
+
+/* ---------- Échange en direct (salon) ---------- */
+.echange-mini-btn { background:linear-gradient(180deg,var(--violet),var(--violet2)); color:#fff; border:none;
+  border-radius:6px; padding:5px 10px; font-weight:700; font-size:.76rem; cursor:pointer; }
+.echange-room-titre { font-weight:700; color:var(--violet2); font-size:.82rem; margin:0 0 10px; }
+.echange-duo { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0 12px; }
+.echange-slot { flex:1; background:#fff; border:2px solid var(--creme2); border-radius:10px; padding:8px; min-height:74px; }
+.echange-slot-tete { font-size:.72rem; color:var(--muted); font-weight:700; margin:0 0 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.echange-slot-mon { font-size:.82rem; color:var(--texte-sombre); line-height:1.4; }
+.echange-vs { font-size:1.3rem; color:var(--violet2); font-weight:700; flex:0 0 auto; }
+.echange-attente { color:var(--muted); font-size:.78rem; font-style:italic; }
+.echange-pret { color:#2b8a3e; font-weight:700; font-size:.76rem; }
+
+/* ---------- Boutons carrés haut de l'écran (Échange / Combat) ---------- */
+.top-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+.topbtn { width:42px; height:42px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+  font-size:1.4rem; line-height:1; text-align:center; background:linear-gradient(180deg,var(--violet),var(--violet2)); color:#fff;
+  border:none; border-radius:10px; cursor:pointer; box-shadow:0 3px 0 var(--violet3); position:relative; }
+.topbtn:active { transform:translateY(2px); box-shadow:0 1px 0 var(--violet3); }
+.topbtn .echange-badge { position:absolute; top:1px; right:1px; margin:0; min-width:14px; height:14px;
+  line-height:14px; padding:0 3px; font-size:.58rem; border:1.5px solid #fff; box-shadow:none;
+  animation:badge-blink 1s ease-in-out infinite; }
+@keyframes badge-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+/* mobile : garder le carré (sinon .mobile-hud button impose la pilule rouge) */
+.mobile-hud-actions { display:flex; gap:8px; align-items:center; }
+.mobile-hud .topbtn { width:44px; height:44px; min-height:44px; padding:0; border-radius:11px; font-size:1.5rem;
+  background:linear-gradient(180deg,var(--violet),var(--violet2)); box-shadow:0 3px 0 var(--violet3); pointer-events:auto; }
+
+/* Boutons d'action entrante (Rejoindre / Recevoir) : léger éclat vert pour attirer l'œil */
+#echangeInvitesListe .echange-recevoir, #echangeRecusListe .echange-recevoir {
+  animation:rejoindre-glow 1.25s ease-in-out infinite;
+}
+@keyframes rejoindre-glow {
+  0%,100% { box-shadow:0 2px 0 #1d6029; }
+  50% { box-shadow:0 2px 0 #1d6029, 0 0 10px 2px rgba(55,178,77,.85); }
+}

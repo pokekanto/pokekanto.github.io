@@ -98,6 +98,7 @@
     if (window.Valdoria.tchat) window.Valdoria.tchat.connect(db, pseudo);
     if (window.Valdoria.linkroom) window.Valdoria.linkroom.connectDb(db, monId);
   if (window.Valdoria.cloudsave) window.Valdoria.cloudsave.connectDb(db);
+    if (window.Valdoria.echange) window.Valdoria.echange.connectDb(db);
 
     db.ref(".info/connected").on("value", s => {
       if (s.val()) majStatut();

@@ -11,7 +11,7 @@
   var $ = dom.$, setStatus = dom.setStatus;
 
   var BASE = "iodine/";
-  var CORE_VER = "20260618a";   // cache-buster des scripts du coeur (Serial.js patche)
+  var CORE_VER = "20260618e";   // cache-buster des scripts du coeur (Serial.js patche)
   var SCRIPTS = [
     "IodineGBA/includes/TypedArrayShim.js",
     "IodineGBA/core/Cartridge.js","IodineGBA/core/DMA.js","IodineGBA/core/Emulator.js",
