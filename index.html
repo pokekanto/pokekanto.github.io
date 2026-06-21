@@ -69,14 +69,14 @@
             <button id="raccourcisBtn" type="button" title="Raccourcis">⌨️</button>
             <label class="action-btn" id="playSavLabel" title="Importer .sav">📥<input type="file" id="playSavInput" accept=".sav" hidden></label>
             <button id="saveBtn" disabled title="Exporter .sav">📤</button>
-            <button type="button" id="linkroomBtnSaveMap2" title="Cable Club (combats / échanges)">⚔️</button>
+            
           </div>
           <p id="saveStatus" class="save-status"></p>
         </div>
         <div class="sidebar-section" id="cloudSaveSection" hidden>
           <p class="cloud-code-label">☁️ Sauvegarde : <strong id="cloudCode">—</strong></p>
-          <button type="button" id="cloudSaveBtn" class="cloud-save-btn">☁️ Sauvegarder en ligne</button>
-          <p class="cloud-note">⚠️ Important : à cliquer une fois en début de partie pour sauvegarder en ligne. Ensuite c'est automatique, plus besoin d'y toucher.</p>
+          
+          <p class="cloud-hint">☁️ Ta partie est sauvegardée en ligne automatiquement, dès ta première sauvegarde dans le jeu.</p>
           <div class="cloud-restore">
             <input id="cloudCodeInput" maxlength="14" placeholder="VALD-XXXX-XXXX">
             <button type="button" id="cloudRestoreBtn">Utiliser ce code</button>
@@ -120,15 +120,15 @@
           <button id="drawerSoundBtn" title="Son">🔊 Son</button>
           <button type="button" id="drawerImportBtn" title="Importer .sav">📥 Import</button>
           <button id="drawerSaveBtn" disabled title="Exporter .sav">📤 Export</button>
-          <button type="button" id="drawerLinkroomBtn2" title="Cable Club">⚔️ Cable Club</button>
+          
         </div>
       </div>
 
       <div class="panel" id="drawerCloudSaveSection" hidden>
         <p class="linkroom-config-titre">☁️ Sauvegarde en ligne</p>
         <p class="cloud-code-label">Ton code : <strong id="drawerCloudCode">—</strong></p>
-        <button type="button" id="drawerCloudSaveBtn" class="cloud-save-btn">☁️ Sauvegarder en ligne</button>
-        <p class="cloud-note">⚠️ Important : à cliquer une fois en début de partie pour sauvegarder en ligne. Ensuite c'est automatique, plus besoin d'y toucher.</p>
+        
+        <p class="cloud-hint">☁️ Ta partie est sauvegardée en ligne automatiquement, dès ta première sauvegarde dans le jeu.</p>
         <div class="cloud-restore">
           <input id="drawerCloudCodeInput" maxlength="14" placeholder="VALD-XXXX-XXXX">
           <button type="button" id="drawerCloudRestoreBtn">Utiliser ce code</button>
