@@ -123,10 +123,17 @@
     $("mobileBackdrop").classList.toggle("open", open);
   }
 
+  function toggleAmis(open) {
+    var p = $("amisPanel"); if (p) p.toggleAttribute("hidden", !open);
+  }
+
   function bindMenus() {
     $("mobileValdoriaBtn").addEventListener("click", () => toggleValdoriaMenu(true));
     $("closeValdoriaMenu").addEventListener("click", () => toggleValdoriaMenu(false));
     $("mobileBackdrop").addEventListener("click", () => toggleValdoriaMenu(false));
+    var amisBtn = $("amisBtnOuvrir"); if (amisBtn) amisBtn.addEventListener("click", () => toggleAmis(true));
+    var amisClose = $("amisBtnFermer"); if (amisClose) amisClose.addEventListener("click", () => toggleAmis(false));
+    var amisP = $("amisPanel"); if (amisP) amisP.addEventListener("click", (e) => { if (e.target === amisP) toggleAmis(false); });
   }
 
   document.querySelectorAll("[data-gba-key]").forEach(bindTouchButton);

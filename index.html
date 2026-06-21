@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="assets/img/onglet.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=20260621a">
+<link rel="stylesheet" href="assets/css/main.css?v=20260621b">
 </head>
 <body>
 <video id="bgVideo" class="bg-video" autoplay loop muted playsinline>
@@ -39,6 +39,7 @@
     <div class="mobile-hud" aria-label="Menus mobiles">
       <button type="button" id="mobileValdoriaBtn">PokéKanto</button>
       <div class="mobile-hud-actions">
+        <button type="button" id="amisBtnOuvrir" class="topbtn" title="Amis" aria-label="Amis">👥</button>
         <button type="button" class="topbtn js-ech-open" title="Échange" aria-label="Échange">🔁<span class="echange-badge js-ech-badge" hidden></span></button>
         <button type="button" class="topbtn js-combat" title="Combat (bientôt)" aria-label="Combat">⚔️</button>
       </div>
@@ -135,15 +136,6 @@
         </div>
       </div>
 
-      <div class="panel" id="drawerAmisPanel">
-        <p class="linkroom-config-titre">👥 Amis</p>
-        <p class="drawer-tag-info" id="drawerTagInfo"></p>
-        <div class="drawer-ami-ajout">
-          <input id="drawerAmiInput" maxlength="17" placeholder="Nom#1234">
-          <button type="button" id="drawerAmiAjouter">+ Ajouter</button>
-        </div>
-        <div id="drawerAmiListe"></div>
-      </div>
 
       <div class="panel" id="drawerInfoPanel">
         <p class="drawer-info-ligne">Vitesse : <strong id="ipsValue">...</strong> i/s <span class="drawer-info-sub">(GBA 59,7)</span></p>
@@ -286,6 +278,20 @@
       </div>
     </div>
 
+    <!-- Amis (mobile) : ouvert par le bouton 👥 -->
+    <div id="amisPanel" hidden>
+      <div class="echange-card">
+        <h2>👥 Amis</h2>
+        <p class="drawer-tag-info" id="drawerTagInfo"></p>
+        <div class="drawer-ami-ajout">
+          <input id="drawerAmiInput" maxlength="17" placeholder="Nom#1234">
+          <button type="button" id="drawerAmiAjouter">+ Ajouter</button>
+        </div>
+        <div id="drawerAmiListe"></div>
+        <button type="button" id="amisBtnFermer" class="echange-fermer">Fermer</button>
+      </div>
+    </div>
+
     <button type="button" id="fullscreenBtn" class="fullscreen-btn" aria-label="Plein écran">⛶</button>
 
     <div id="legendeZone">
@@ -337,7 +343,7 @@
 <script src="assets/js/debug.js?v=20260617a"></script>
 <script src="assets/js/roms.js?v=20260614q"></script>
 <script src="assets/js/app.js?v=20260621a"></script>
-<script src="assets/js/touch-controls.js?v=20260614d"></script>
+<script src="assets/js/touch-controls.js?v=20260621a"></script>
 <script src="assets/js/fullscreen.js?v=20260614l"></script>
 </body>
 </html>

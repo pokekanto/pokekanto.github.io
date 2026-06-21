@@ -884,7 +884,7 @@ body.is-playing #legendeZone {
 
 /* ---------- Boutons carrés haut de l'écran (Échange / Combat) ---------- */
 .top-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
-.topbtn { width:42px; height:42px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+.topbtn { width:42px; height:42px; padding:0; display:grid; place-items:center;
   font-size:1.4rem; line-height:1; text-align:center; background:linear-gradient(180deg,var(--violet),var(--violet2)); color:#fff;
   border:none; border-radius:10px; cursor:pointer; box-shadow:0 3px 0 var(--violet3); position:relative; }
 .topbtn:active { transform:translateY(2px); box-shadow:0 1px 0 var(--violet3); }
@@ -915,3 +915,11 @@ body.is-playing #legendeZone {
 /* ROM prête -> le bouton Lancer clignote rouge léger */
 @keyframes lancer-rouge { 0%,100% { box-shadow:0 4px 0 #7e1300, 0 8px 16px rgba(0,0,0,.35); } 50% { box-shadow:0 4px 0 #7e1300, 0 8px 16px rgba(0,0,0,.35), 0 0 16px 3px rgba(227,53,13,.7); } }
 #launchBtn:not([hidden]) { animation:lancer-rouge 1.4s ease-in-out infinite; }
+
+/* ---------- Panneau Amis (mobile, ouvert par 👥) ---------- */
+#amisPanel { position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center; background:rgba(10,6,18,.8); backdrop-filter:blur(3px); }
+#amisPanel[hidden] { display:none; }
+#amisPanel .drawer-tag-info { text-align:center; margin:0 0 10px; }
+#amisPanel .drawer-ami-ajout { display:flex; gap:6px; margin-bottom:10px; }
+#amisPanel .drawer-ami-ajout input { flex:1; min-width:0; padding:8px; border:1px solid var(--creme2); border-radius:7px; font-size:.85rem; }
+#amisPanel #drawerAmiListe { max-height:48vh; overflow-y:auto; }
