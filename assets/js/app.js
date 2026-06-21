@@ -29,10 +29,6 @@
     if (pseudo) $("playerName").value = pseudo;
   } catch (e) { /* stockage indisponible */ }
 
-  $("savInput").addEventListener("change", e => {
-    emulator.loadSaveFile(e.target.files[0] || null);
-  });
-
   $("playSavInput").addEventListener("change", e => {
     emulator.loadSaveFile(e.target.files[0] || null, { restart: true });
   });

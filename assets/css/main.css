@@ -905,3 +905,13 @@ body.is-playing #legendeZone {
   0%,100% { box-shadow:0 2px 0 #1d6029; }
   50% { box-shadow:0 2px 0 #1d6029, 0 0 10px 2px rgba(55,178,77,.85); }
 }
+
+/* ---------- Accueil : attirer l'œil ---------- */
+/* Pas de ROM -> la zone de dépôt clignote vert léger */
+@keyframes drop-vert { 0%,100% { box-shadow:0 0 0 0 rgba(57,211,83,0); } 50% { box-shadow:0 0 14px 2px rgba(57,211,83,.55); border-color:#39d353; } }
+.rom-drop:not(.compact) { animation:drop-vert 1.5s ease-in-out infinite; }
+/* ROM enregistrée -> zone grisée, sans clignotement */
+.rom-drop.compact { animation:none; opacity:.5; }
+/* ROM prête -> le bouton Lancer clignote rouge léger */
+@keyframes lancer-rouge { 0%,100% { box-shadow:0 4px 0 #7e1300, 0 8px 16px rgba(0,0,0,.35); } 50% { box-shadow:0 4px 0 #7e1300, 0 8px 16px rgba(0,0,0,.35), 0 0 16px 3px rgba(227,53,13,.7); } }
+#launchBtn:not([hidden]) { animation:lancer-rouge 1.4s ease-in-out infinite; }
