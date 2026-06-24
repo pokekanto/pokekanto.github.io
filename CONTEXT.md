@@ -39,24 +39,30 @@ Priorite actuelle : ameliorer l'experience multijoueur sans heberger ni distribu
 - `assets/js/state.js` : etat partage (gba, myPos, joueurs…).
 - `assets/js/audio.js` : worklet audio (Catmull-Rom, passe-bas, controle de debit).
 - `assets/js/emulator.js` : chargement ROM, sauvegardes, controle emulateur.
+- `assets/js/emulator-iodine.js` : integration IodineGBA, moteur d'emulation PAR DEFAUT (plus rapide, charge a la demande). gbajs2 reste en secours via ?core=gbajs2.
 - `assets/js/position.js` : lecture de position et genre en RAM GBA.
 - `assets/js/raccourcis.js` : panneau de personnalisation des touches clavier.
 - `assets/js/tchat.js` : tchat general et amis via Firebase.
 - `assets/js/network.js` : connexion au monde partage Firebase, envoi de position.
 - `assets/js/siolink.js` : emulation cable link GBA via WebRTC + signaling Firebase.
 - `assets/js/linkroom.js` : lobby Cable Club (combat / echange avec un ami).
+- `assets/js/cloudsave.js` : sauvegarde .sav compressee dans le cloud (Firebase) + code de recuperation (VALD-XXXX).
+- `assets/js/echange.js` : echange de Pokemon — lit/ecrit la RAM GBA, transport Firebase (boite aux lettres async + echange en direct atomique).
+- `assets/js/combat.js` : donnees de combat lues dans la ROM (stats, attaques, types, noms FR, sprites) + decodage de l'equipe du joueur.
+- `assets/js/combat-ui.js` : ecran de combat local (vs IA) et EN LIGNE — client Showdown anime (replay-embed dans une iframe) + moteur @pkmn/sim (mecaniques) + matchmaking aleatoire / defi ami via Firebase. Boutons + journal en francais.
 - `assets/js/sprites.js` : rendu du sprite du joueur distant (homme10.png / fille8.png).
 - `assets/js/overlay.js` : boucle d'affichage des joueurs distants sur le canvas overlay.
 - `assets/js/debug.js` : panneau debug (position, joueurs en ligne).
+- `assets/js/roms.js` : memoire des ROMs par langue (IndexedDB) + ecran d'accueil (choix de langue, lancement).
 - `assets/js/app.js` : branchement general, boucle de jeu.
 - `assets/js/touch-controls.js` : controles mobiles tactiles.
 - `assets/js/fullscreen.js` : gestion du mode plein ecran.
 - `assets/img/homme10.png` : sprite sheet du joueur masculin (3 cols x 4 lignes).
 - `assets/img/fille8.png` : sprite sheet du joueur feminin (3 cols x 4 lignes).
 
-Ordre de chargement dans index.html : dom → state → audio → emulator → position →
-raccourcis → tchat → network → siolink → linkroom → sprites → overlay → debug → app →
-touch-controls → fullscreen.
+Ordre de chargement dans index.html : dom → state → audio → emulator → emulator-iodine →
+position → raccourcis → tchat → network → siolink → linkroom → cloudsave → echange →
+combat → combat-ui → sprites → overlay → debug → roms → app → touch-controls → fullscreen.
 
 ## Regles ROM et legal
 
@@ -148,9 +154,18 @@ Pour une modification reseau/multijoueur :
 - Verifier que la position s'affiche correctement sur une meme map.
 - Verifier le comportement quand les joueurs changent de map.
 
+Pour le combat (local et en ligne) :
+
+- Lancer le jeu, aller sur la carte, ouvrir le combat (bouton epee en haut).
+- Entrainement : verifier l'affichage des Pokemon, les animations, les attaques en francais.
+- En ligne : 2 appareils avec des sauvegardes differentes -> Aleatoire (les deux) ou Defier un ami (par tag), verifier l'appariement, la notification et le combat synchronise.
+
 ## Decisions techniques importantes
 
-- Le mode actuel est un overlay : l'ami n'existe pas encore dans le moteur du jeu.
-- Les vrais combats online devront passer par une emulation du cable link GBA, pas par le mode overlay.
+- Moteur d'emulation : IodineGBA par defaut (emulator-iodine.js), gbajs2 en secours (?core=gbajs2).
+- L'ami sur la carte = overlay (il n'existe pas dans le moteur du jeu), position synchronisee via Firebase.
+- COMBAT : ne passe PAS par l'emulation du cable. Systeme maison = on LIT l'equipe dans la RAM, le moteur @pkmn/sim (Showdown) calcule le combat (mecaniques Gen 3 exactes), et le client Showdown (replay-embed.js dans une iframe isolee) l'affiche anime. EN LIGNE = Firebase hote-autorite : l'hote fait tourner le sim et pousse le log, l'invite envoie ses coups. Matchmaking aleatoire (file d'attente FIFO, ticket numerote) + defi ami (notif via monde/echanges). Chemins Firebase ouverts utilises : monde/sessions/* et monde/echanges/*.
+- ECHANGE : meme principe (lit/ecrit la RAM + transport Firebase), pas le cable.
+- Le cable link reel (siolink.js / linkroom.js, Cable Club) reste dispo mais n'est pas la voie du combat principal (mur de la synchro temps reel).
 - Le projet doit rester compatible GitHub Pages.
 - Toute dependance externe doit etre justifiee dans la PR.

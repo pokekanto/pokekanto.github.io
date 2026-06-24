@@ -456,7 +456,6 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     [].forEach.call(document.querySelectorAll(".js-ech-open"), function (b) { b.addEventListener("click", ouvre); });
-    [].forEach.call(document.querySelectorAll(".js-combat"), function (b) { b.addEventListener("click", function () { window.alert("Système de combat en construction…"); }); });
     var bf = $("echangeBtnFermer"); if (bf) bf.addEventListener("click", ferme);
     var te = $("echangeTabEnvoyer"); if (te) te.addEventListener("click", function () { montreOnglet("envoyer"); });
     var tr = $("echangeTabRecus"); if (tr) tr.addEventListener("click", function () { montreOnglet("recus"); });

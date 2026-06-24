@@ -923,3 +923,69 @@ body.is-playing #legendeZone {
 #amisPanel .drawer-ami-ajout { display:flex; gap:6px; margin-bottom:10px; }
 #amisPanel .drawer-ami-ajout input { flex:1; min-width:0; padding:8px; border:1px solid var(--creme2); border-radius:7px; font-size:.85rem; }
 #amisPanel #drawerAmiListe { max-height:48vh; overflow-y:auto; }
+
+/* ---------- Combat PokéKanto ---------- */
+#combatPanel { position:fixed; inset:0; z-index:33; display:flex; align-items:center; justify-content:center; background:rgba(10,6,18,.85); backdrop-filter:blur(3px); }
+#combatPanel[hidden] { display:none; }
+.combat-card { background:var(--panneau); color:var(--texte-sombre); border:3px solid var(--bordure); border-radius:14px; padding:18px; width:min(420px,94vw); max-height:92vh; overflow-y:auto; box-shadow:0 24px 70px rgba(0,0,0,.6); }
+.combat-card h2 { font-family:"Press Start 2P",monospace; font-size:.72rem; color:var(--violet2); margin:0 0 14px; text-align:center; }
+.combat-action { display:block; width:100%; margin:0 0 8px; background:linear-gradient(180deg,var(--rouge),var(--rouge2)); color:#fff; border:none; border-radius:10px; padding:13px; font-weight:700; font-size:.92rem; cursor:pointer; box-shadow:0 3px 0 #7e1300; }
+.combat-action:active { transform:translateY(2px); box-shadow:0 1px 0 #7e1300; }
+.combat-action.secondaire { background:linear-gradient(180deg,#6b5d7d,#52465f); box-shadow:0 3px 0 #38304a; }
+.combat-adv { background:#eef0f5; border:2px solid var(--creme2); border-radius:10px; padding:9px 12px; margin-bottom:8px; }
+.combat-nom { font-weight:700; font-size:.9rem; color:var(--texte-sombre); margin-bottom:5px; display:flex; justify-content:space-between; gap:8px; }
+.combat-pvbar { height:11px; background:#3a3a4a; border-radius:6px; overflow:hidden; }
+.combat-pvfill { height:100%; width:100%; border-radius:6px; transition:width .35s ease; }
+.combat-pvfill.vert { background:#37b24d; } .combat-pvfill.jaune { background:#f0b400; } .combat-pvfill.rouge { background:#e3350d; }
+.combat-pvtxt { font-size:.72rem; color:var(--muted); text-align:right; margin-top:3px; }
+.combat-log { background:#1b1b2b; color:#e9e9f5; border-radius:9px; padding:9px 11px; font-size:.82rem; line-height:1.5; height:120px; overflow-y:auto; margin:8px 0; }
+.combat-log div { margin-bottom:3px; }
+.combat-moves { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:10px; }
+.combat-move { border:none; border-radius:9px; padding:9px; color:#fff; cursor:pointer; text-align:left; text-shadow:0 1px 2px rgba(0,0,0,.45); box-shadow:0 2px 4px rgba(0,0,0,.25); display:flex; flex-direction:column; gap:2px; }
+.combat-move:disabled { opacity:.5; cursor:not-allowed; }
+.cm-nom { font-weight:700; font-size:.84rem; } .cm-info { font-size:.68rem; opacity:.92; }
+
+/* ---------- Écran de combat façon Rouge Feu ---------- */
+.cb-scene { position:relative; width:100%; aspect-ratio:3/2; border-radius:8px; overflow:hidden; border:2px solid var(--bordure);
+  background:linear-gradient(180deg,#8ed0ec 0%,#9bdcf0 52%,#bfe39a 52%,#d8e6a6 100%); }
+.cb-sprite { position:absolute; width:40%; height:auto; image-rendering:pixelated; }
+.cb-sprite-adv { top:6%; right:7%; }
+.cb-sprite-moi { bottom:15%; left:7%; }
+.cb-plat { position:absolute; width:38%; height:10%; border-radius:50%; background:rgba(110,170,80,.5); }
+.cb-plat-adv { top:30%; right:8%; }
+.cb-plat-moi { bottom:13%; left:8%; }
+.cb-hpbox { position:absolute; background:#f7f0d6; border:2px solid #4a4630; border-radius:9px; padding:5px 9px; width:46%; box-shadow:1px 2px 0 #b6a878; }
+.cb-hp-adv { top:6%; left:4%; } .cb-hp-moi { bottom:5%; right:4%; }
+.cb-hp-nom { font-weight:700; font-size:.76rem; color:#2e2c18; display:flex; justify-content:space-between; gap:6px; }
+.cb-hp-bar { height:7px; background:#5a563a; border-radius:4px; margin-top:4px; overflow:hidden; }
+.cb-hp-fill { height:100%; width:100%; background:#37b24d; transition:width .45s ease; }
+.cb-hp-fill.j { background:#f0b400; } .cb-hp-fill.r { background:#e3350d; }
+.cb-hp-txt { font-size:.64rem; color:#5f5b38; text-align:right; margin-top:2px; }
+.cb-bottom { background:#f8f8f0; border:3px solid #3858a8; border-radius:9px; margin-top:8px; padding:9px 11px; }
+.cb-msg { min-height:36px; font-size:.86rem; color:#2e2e48; line-height:1.45; margin-bottom:8px; }
+.cb-moves { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.cb-move { border:2px solid #3858a8; border-radius:7px; background:#fff; padding:8px; cursor:pointer; text-align:left; }
+.cb-move:disabled { opacity:.5; cursor:not-allowed; }
+.cb-move .n { display:block; font-weight:700; font-size:.82rem; } .cb-move .i { font-size:.64rem; color:#777; }
+
+/* ---------- Animations de combat ---------- */
+@keyframes cb-lunge-moi { 0%{transform:translate(0,0);} 45%{transform:translate(45%,-45%);} 100%{transform:translate(0,0);} }
+@keyframes cb-lunge-adv { 0%{transform:translate(0,0);} 45%{transform:translate(-45%,45%);} 100%{transform:translate(0,0);} }
+.cb-lunge-moi { animation:cb-lunge-moi .36s ease; }
+.cb-lunge-adv { animation:cb-lunge-adv .36s ease; }
+@keyframes cb-shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-7px);} 40%{transform:translateX(7px);} 60%{transform:translateX(-5px);} 80%{transform:translateX(5px);} }
+.cb-hit { animation:cb-shake .35s; }
+@keyframes cb-faintkf { 0%{transform:translateY(0);opacity:1;} 100%{transform:translateY(48px);opacity:0;} }
+.cb-faint { animation:cb-faintkf .6s forwards; }
+.cb-flash { position:absolute; border-radius:50%; pointer-events:none; mix-blend-mode:screen; animation:cb-flashkf .42s forwards; }
+@keyframes cb-flashkf { from{opacity:.8;transform:scale(.4);} to{opacity:0;transform:scale(1.4);} }
+@keyframes cb-enter-moi { from{transform:translateX(-60px);opacity:0;} to{transform:translateX(0);opacity:1;} }
+@keyframes cb-enter-adv { from{transform:translateX(60px);opacity:0;} to{transform:translateX(0);opacity:1;} }
+.cb-enter-moi { animation:cb-enter-moi .5s ease; }
+.cb-enter-adv { animation:cb-enter-adv .5s ease; }
+
+/* ---------- Combat : client Showdown embarqué ---------- */
+#combatPanel .combat-card { width:min(560px,97vw); }
+.cb-scalewrap { width:100%; overflow:hidden; background:#000; border-radius:6px; margin-bottom:6px; min-height:60px; }
+#cbLogBox { max-height:80px; overflow:auto; font-size:.72rem; background:#fff; border:1px solid var(--creme2); border-radius:6px; margin-bottom:8px; padding:4px 7px; color:#222; line-height:1.4; }
+.cb-status { font-weight:700; color:var(--violet2); font-size:.85rem; min-height:1.1em; margin:4px 0; text-align:center; }
