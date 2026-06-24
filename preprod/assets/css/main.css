@@ -720,8 +720,11 @@ body.is-playing .mobile-drawer-head { display:flex; }
   }
   body.is-playing #play { justify-content:center; }
   body.is-playing #screenZone #screenWrap {
-    width:min(calc(100dvw - 260px), calc((100dvh - 26px) * 1.5));
-    max-height:calc(100dvh - 26px);
+    height:calc(100dvh - 20px);
+    width:auto;
+    max-width:100%;
+    max-height:none;
+    aspect-ratio:3 / 2;
     margin:auto;
   }
   body.is-playing #tchat { display:none; }
