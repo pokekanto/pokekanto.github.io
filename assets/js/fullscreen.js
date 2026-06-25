@@ -46,9 +46,9 @@
     try { p = request.call(root); } catch (e) { entreImmersif(); return; }
     const verifieEffet = () => { if (nativeActif()) refresh(); else entreImmersif(); };
     if (p && typeof p.then === "function") {
-      p.then(function () { setTimeout(verifieEffet, 120); }).catch(entreImmersif);
+      p.then(function () { setTimeout(verifieEffet, 400); }).catch(entreImmersif);
     } else {
-      setTimeout(verifieEffet, 150);
+      setTimeout(verifieEffet, 400);
     }
   }
 
@@ -56,7 +56,16 @@
     btn.textContent = (nativeActif() || immersifActif()) ? String.fromCharCode(0x2715) : String.fromCharCode(0x26F6);
   }
 
-  btn.addEventListener("click", toggle);
+  var derniereBascule = 0;
+  function surBoutonPleinEcran(e) {
+    try { e.preventDefault(); } catch (x) {}
+    var now = Date.now();
+    if (now - derniereBascule < 350) return;     // anti double-declenchement
+    derniereBascule = now;
+    toggle();
+  }
+  btn.addEventListener("pointerup", surBoutonPleinEcran);
+  btn.addEventListener("click", function (e) { try { e.preventDefault(); } catch (x) {} });
   document.addEventListener("fullscreenchange", refresh);
   document.addEventListener("webkitfullscreenchange", refresh);
 
