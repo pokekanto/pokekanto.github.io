@@ -777,16 +777,16 @@ body.is-playing .mobile-drawer-head { display:flex; }
   }
   .touch-btn.system {
     position:absolute;
-    bottom:calc(env(safe-area-inset-bottom) + 8px);
-    height:48px;
-    min-width:112px;
-    font-size:.62rem;
+    bottom:calc(env(safe-area-inset-bottom) + 124px);
+    height:30px;
+    min-width:72px;
+    font-size:.5rem;
     border-radius:999px;
     pointer-events:auto;
     opacity:.85;
   }
-  .system-row .touch-btn.system[data-gba-key="SELECT"] { left:50%; transform:translateX(-108%); }
-  .system-row .touch-btn.system[data-gba-key="START"] { left:50%; transform:translateX(8%); }
+  .system-row .touch-btn.system[data-gba-key="SELECT"] { right:calc(env(safe-area-inset-right) + 90px); left:auto; transform:none; }
+  .system-row .touch-btn.system[data-gba-key="START"] { right:calc(env(safe-area-inset-right) + 12px); left:auto; transform:none; }
   .system-row .led2 { display:none; }
 }
 
