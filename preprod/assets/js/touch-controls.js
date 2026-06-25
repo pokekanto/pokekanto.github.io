@@ -35,26 +35,36 @@
     const key = button.dataset.gbaKey;
     if (!key) return;
 
+    // Duree d'appui MINIMALE : sur un tap eclair, on maintient la touche
+    // ~130 ms pour garantir que l'emulateur la lise (sinon press+release
+    // tombent entre deux images et la touche est ignoree -> SELECT/START).
+    let downAt = 0, releaseTimer = null;
+    const MIN = 130;
+    const doRelease = () => { button.classList.remove("is-active"); setKey(key, false); };
     const press = event => {
       event.preventDefault();
+      if (releaseTimer) { clearTimeout(releaseTimer); releaseTimer = null; }
       fermeClavier();
       button.setPointerCapture?.(event.pointerId);
       button.classList.add("is-active");
+      downAt = Date.now();
       setKey(key, true);
     };
     const release = event => {
-      event.preventDefault();
-      button.classList.remove("is-active");
-      setKey(key, false);
+      if (event) event.preventDefault();
+      const held = Date.now() - downAt;
+      if (held < MIN) {
+        if (releaseTimer) clearTimeout(releaseTimer);
+        releaseTimer = setTimeout(() => { releaseTimer = null; doRelease(); }, MIN - held);
+      } else {
+        doRelease();
+      }
     };
 
     button.addEventListener("pointerdown", press);
     button.addEventListener("pointerup", release);
     button.addEventListener("pointercancel", release);
-    button.addEventListener("lostpointercapture", () => {
-      button.classList.remove("is-active");
-      setKey(key, false);
-    });
+    button.addEventListener("lostpointercapture", release);
     button.addEventListener("contextmenu", event => event.preventDefault());
   }
 

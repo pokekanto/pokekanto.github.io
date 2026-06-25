@@ -750,7 +750,7 @@ body.is-playing .mobile-drawer-head { display:flex; }
     inset:0;
     display:block;
     pointer-events:none;
-    z-index:7;
+    z-index:16;
     margin:0;
     background:none;
     border-radius:0;
