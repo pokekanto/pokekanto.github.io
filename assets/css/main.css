@@ -719,9 +719,12 @@ body.is-playing .mobile-drawer-head { display:flex; }
     padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
   }
   body.is-playing #play { justify-content:center; }
-  body.is-playing #screenWrap {
-    width:min(calc(100dvw - 260px), calc((100dvh - 26px) * 1.5));
-    max-height:calc(100dvh - 26px);
+  body.is-playing #screenZone #screenWrap {
+    height:calc(100dvh - 20px);
+    width:auto;
+    max-width:100%;
+    max-height:none;
+    aspect-ratio:3 / 2;
     margin:auto;
   }
   body.is-playing #tchat { display:none; }
