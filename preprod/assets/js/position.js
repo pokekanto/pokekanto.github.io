@@ -13,7 +13,7 @@
   // puis on la retient (localStorage par ROM). Tant qu'elle n'est pas
   // apprise, on affiche tout comme avant — jamais pire que l'existant.
   const forceCb2 = params.get("cb2");
-  let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : null;
+  let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : 0x03005058;
   let cb2Connu = null;
   let cb2Charge = false;
   let cbCandidat = 0;
@@ -39,7 +39,7 @@
 
   function cleCb2() {
     const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
-    return cart && cart.code ? "valdoria.cb2." + cart.code : null;
+    return cart && cart.code ? "valdoria.cb3." + cart.code : null;
   }
 
   function lireCb2() { return cb2Addr !== null ? lire32(cb2Addr) : 0; }
@@ -50,7 +50,7 @@
       try {
         const k = cleCb2();
         const v = k ? window.localStorage.getItem(k) : null;
-        if (v) { const o = JSON.parse(v); if (o && o.a && o.c) { cb2Addr = o.a >>> 0; cb2Connu = o.c >>> 0; } }
+        if (v) { const o = JSON.parse(v); if (o && (o.a >>> 0) === cb2Addr && o.c) { cb2Connu = o.c >>> 0; } }
       } catch (e) { /* stockage indisponible */ }
     }
     if (cb2Addr === null) {
@@ -67,7 +67,7 @@
     const cb = lireCb2();
     if (!estPtrRom(cb)) return;
     if (cb === cbCandidat) {
-      if (++cbSerie >= 4) {
+      if (++cbSerie >= 3) {
         cb2Connu = cb;
         try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, c: cb2Connu })); } catch (e) {}
       }
