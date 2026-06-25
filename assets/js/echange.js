@@ -215,7 +215,7 @@
     choisiDirect = -1;
     if (role === "hote") { try { salon.ref.onDisconnect().remove(); } catch (e) {} }
     salon.ref.on("value", function (s) { surMajSalon(s.val()); });
-    salon.timer = setInterval(verifieSalon, 1300);
+    salon.timer = setInterval(verifieSalon, 700);
     $("echangeDirectIdle").setAttribute("hidden", "");
     $("echangeDirectRoom").removeAttribute("hidden");
     $("echangeRoomTitre").textContent = "Salon " + code + " — avec " + partenaire;
@@ -249,6 +249,50 @@
     dirStatut("Validé ✅ — en attente de la validation de l'autre…");
   }
 
+  // Joue une sequence de touches sur l'emulateur (Iodine), avec delais.
+  function joueSeqTouches(etapes, fini) {
+    var ig = window.IodineGUI && window.IodineGUI.Iodine;
+    if (!ig || !ig.keyDown) { if (fini) fini(); return; }
+    var t = 300;
+    etapes.forEach(function (e) {
+      setTimeout(function () { try { ig.keyDown(e[0]); } catch (x) {} setTimeout(function () { try { ig.keyUp(e[0]); } catch (x) {} }, 45); }, t);
+      t += e[1];
+    });
+    if (fini) setTimeout(fini, t + 500);
+  }
+  function finaliseCloud(nomRecu) {
+    function fin(extra) { dirStatut("✅ <strong>Échange terminé et sauvegardé</strong> ! Tu as reçu <strong>" + nomRecu + "</strong>." + (extra || "")); }
+    if (V.cloudsave && V.cloudsave.envoie) { V.cloudsave.envoie().then(function () { fin("<br>☁️ Copie en ligne OK."); }).catch(function () { fin(""); }); }
+    else { fin(""); }
+  }
+  // Pilote la VRAIE sauvegarde du jeu (Start -> SAUVER -> OUI), en arriere-plan.
+  function driveSauvegarde(done) {
+    var etapes = [
+      [1, 250], [1, 250],                                                                     // B x2 : ferme un menu eventuel
+      [3, 560],                                                                               // Start : ouvre le menu
+      [6, 120], [6, 120], [6, 120], [6, 120], [6, 120], [6, 120], [6, 120], [6, 220],         // Haut x8 -> tout en haut
+      [7, 240], [7, 240], [7, 240], [7, 360],                                                 // Bas x4 -> SAUVER
+      [0, 800], [0, 800], [0, 2900], [0, 850],                                                // A : sauvegarder? / OUI / OUI(ecraser)+save / "termine"
+      [1, 300]                                                                                // B : ferme le menu
+    ];
+    joueSeqTouches(etapes, done);
+  }
+  // Sauvegarde AUTO invisible + VERIFIEE (anti-doublon) : declenche la vraie
+  // sauvegarde du jeu en arriere-plan, verifie que le .sav a change, puis cloud.
+  function sauvegardeAutoEtCloud(nomRecu) {
+    dirStatut("🎉 Échange réussi ! Tu as reçu <strong>" + nomRecu + "</strong>.<br>💾 Sauvegarde automatique… <strong>ne touche à rien</strong>.");
+    var emu = V.emulator;
+    function sav() { try { return (emu && emu.getSaveBase64) ? emu.getSaveBase64() : null; } catch (e) { return null; } }
+    var avant = sav();
+    driveSauvegarde(function () {
+      if (avant === null || sav() !== avant) { finaliseCloud(nomRecu); return; }   // .sav a change -> sauvegarde OK
+      dirStatut("💾 Nouvelle tentative de sauvegarde… <strong>ne touche à rien</strong>.");
+      driveSauvegarde(function () {
+        if (avant === null || sav() !== avant) finaliseCloud(nomRecu);
+        else dirStatut("🎉 Tu as reçu <strong>" + nomRecu + "</strong> !<br>⚠️ Sauvegarde auto incertaine : fais <strong>START → SAUVER</strong> pour le garder à coup sûr.");
+      });
+    });
+  }
   function faireSwap(sonOffre) {
     if (!salon || salon.recu || salon.fini) return;
     try {
@@ -263,7 +307,7 @@
       salon.ref.child(champMyFin()).set(true);
       var ch = $("echangeDirectChoix"); if (ch) ch.setAttribute("hidden", "");
       var bv = $("echangeBtnValider"); if (bv) bv.setAttribute("hidden", "");
-      dirStatut("🎉 Échange réussi ! Tu as reçu <strong>" + (sonOffre.nom || "un Pokémon") + "</strong>.<br>⚠️ Sauvegarde EN JEU (Start → Sauvegarder) pour le garder.");
+      sauvegardeAutoEtCloud(sonOffre.nom || "un Pokémon");
     } catch (e) { dirStatut("Souci pendant l'échange (" + (e && e.message ? e.message : e) + "). Réessaie."); }
   }
 
