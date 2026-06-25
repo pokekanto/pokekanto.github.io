@@ -16,6 +16,8 @@
   let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : 0x03005058;
   let cb2Set = null;
   let cb2Charge = false;
+  let cbCandidat = 0;
+  let cbSerie = 0;
   let derniereXY = null;
 
   function estPtrRom(v) { return v >= 0x08000000 && v < 0x09000000; }
@@ -36,7 +38,7 @@
 
   function cleCb2() {
     const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
-    return cart && cart.code ? "valdoria.cb4." + cart.code : null;
+    return cart && cart.code ? "valdoria.cb5." + cart.code : null;
   }
 
   function lireCb2() { return cb2Addr !== null ? lire32(cb2Addr) : 0; }
@@ -60,10 +62,16 @@
     }
     derniereXY = { x: pos.x, y: pos.y };
     const cb = lireCb2();
-    if (!estPtrRom(cb)) return;
-    if (!cb2Set[cb]) {
-      cb2Set[cb] = 1;
-      try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, s: Object.keys(cb2Set).map(Number) })); } catch (e) {}
+    if (!estPtrRom(cb)) { cbCandidat = 0; cbSerie = 0; return; }
+    if (cb === cbCandidat) {
+      cbSerie++;
+      if (cbSerie >= 3 && !cb2Set[cb]) {
+        cb2Set[cb] = 1;
+        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, s: Object.keys(cb2Set).map(Number) })); } catch (e) {}
+      }
+    } else {
+      cbCandidat = cb;
+      cbSerie = 1;
     }
   }
 
