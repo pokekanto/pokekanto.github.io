@@ -130,7 +130,7 @@
     window.addEventListener("keyup", function (e) { h(e, false); });
   }
 
-  var IG, inited = false, lastSave = null, audioOn = false, paused = false;
+  var IG, inited = false, lastSave = null, audioOn = false, paused = false, partieSupprimee = false;
   var volumeVoulu = 1; try { var _v0 = parseFloat(window.localStorage.getItem("valdoria.volume")); if (_v0 >= 0 && _v0 <= 1) volumeVoulu = _v0; } catch (e) {}
   var ipsFrames = 0, ipsAt = 0, biosBuf = null;
 
@@ -208,6 +208,7 @@
     window.writeRedTemporaryText = window.writeRedTemporaryText || function () {};
     try {
       Iodine.attachSaveExportHandler(function (name, save) {
+        if (partieSupprimee) return;
         try { ExportSaveCallback(name, save); } catch (e) {}
         if (name && ("" + name).indexOf("TYPE_") !== 0) { lastSave = save; updateSaveBtn(); }
       });
@@ -393,6 +394,7 @@
 
   // Supprime la sauvegarde LOCALE du jeu (toutes les cles localStorage du .sav).
   function deleteSave() {
+    partieSupprimee = true;
     var name = (state.gba && state.gba.mmu && state.gba.mmu.cart.code) || "";
     try {
       if (name) { try { window.localStorage.removeItem("SAVE_" + name); } catch (e) {} }

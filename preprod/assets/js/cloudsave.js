@@ -10,7 +10,7 @@
   var CLE_HASH = "valdoria.cloudHash";   // hash du dernier .sav envoye (eco)
   var BASE = "monde/saves/";
 
-  var db = null, monCode = null, timer = null, listeners = false;
+  var db = null, monCode = null, timer = null, listeners = false, enSuppression = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -64,6 +64,7 @@
 
   // --- envoi (eco : seulement si la sauvegarde a change) ---
   async function envoie() {
+    if (enSuppression) return "supprime";
     if (!db) return "pasdb";
     var emu = V.emulator; if (!emu || !emu.getSaveBase64) return "pasemu";
     var b64 = emu.getSaveBase64(); if (!b64) return "vide";              // pas de save / vide
@@ -182,9 +183,17 @@
   // Supprime DEFINITIVEMENT la partie : enregistrement cloud + sauvegarde locale.
   async function supprimerPartie() {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement votre partie ?\n\nCette action est IRRÉVERSIBLE : ta sauvegarde sera effacée en local ET en ligne (cloud).")) return;
-    try { if (db) await db.ref(BASE + cleFB(getCode())).remove(); } catch (e) {}
+    enSuppression = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    var code = getCode();
+    if (db) {
+      try { await db.ref(BASE + cleFB(code)).set(""); } catch (e) {}
+      try { await db.ref(BASE + cleFB(code)).remove(); } catch (e) {}
+    }
     try { if (V.emulator && V.emulator.deleteSave) V.emulator.deleteSave(); } catch (e) {}
     try { window.localStorage.removeItem(CLE_HASH); } catch (e) {}
+    try { window.localStorage.removeItem(CLE_CODE); } catch (e) {}
+    monCode = null;
     window.alert("Partie supprimée (local + en ligne). La page va se recharger pour repartir à zéro.");
     try { window.location.reload(); } catch (e) {}
   }
