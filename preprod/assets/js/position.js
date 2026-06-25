@@ -12,21 +12,37 @@
   // l'échantillonnant pendant que le joueur MARCHE (la position change),
   // puis on la retient (localStorage par ROM). Tant qu'elle n'est pas
   // apprise, on affiche tout comme avant — jamais pire que l'existant.
-  const CB2_ADDR = parseInt(params.get("cb2") || "0x030030F4", 16);
+  const forceCb2 = params.get("cb2");
+  let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : null;
   let cb2Connu = null;
   let cb2Charge = false;
   let cbCandidat = 0;
   let cbSerie = 0;
   let derniereXY = null;
+  let dernierScan = 0;
+
+  function estPtrRom(v) { return v >= 0x08000000 && v < 0x09000000; }
+  function lire32(a) { try { return state.gba.mmu.load32(a) >>> 0; } catch (e) { return 0; } }
+
+  // Localise gMain : callback1 + callback2 = pointeurs ROM, au moins 2 autres
+  // handlers ROM dans la foulee, et intrCheck (gMain+0x1C) qui n'est PAS un
+  // pointeur ROM. callback2 = gMain+4.
+  function trouveCb2Addr() {
+    for (let a = 0x03002000; a < 0x03004F00; a += 4) {
+      if (!estPtrRom(lire32(a)) || !estPtrRom(lire32(a + 4))) continue;
+      let autres = 0;
+      for (let k = 2; k <= 6; k++) if (estPtrRom(lire32(a + k * 4))) autres++;
+      if (autres >= 2 && !estPtrRom(lire32(a + 0x1C))) return a + 4;
+    }
+    return null;
+  }
 
   function cleCb2() {
     const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
     return cart && cart.code ? "valdoria.cb2." + cart.code : null;
   }
 
-  function lireCb2() {
-    try { return state.gba.mmu.load32(CB2_ADDR) >>> 0; } catch (e) { return 0; }
-  }
+  function lireCb2() { return cb2Addr !== null ? lire32(cb2Addr) : 0; }
 
   function apprendCb2(pos) {
     if (!cb2Charge) {
@@ -34,20 +50,26 @@
       try {
         const k = cleCb2();
         const v = k ? window.localStorage.getItem(k) : null;
-        if (v) cb2Connu = parseInt(v, 16) >>> 0;
+        if (v) { const o = JSON.parse(v); if (o && o.a && o.c) { cb2Addr = o.a >>> 0; cb2Connu = o.c >>> 0; } }
       } catch (e) { /* stockage indisponible */ }
     }
+    if (cb2Addr === null) {
+      const now = Date.now();
+      if (now - dernierScan > 2000) { dernierScan = now; cb2Addr = trouveCb2Addr(); }
+      if (cb2Addr === null) return;
+    }
+    if (cb2Connu !== null) return;
     if (!derniereXY || (pos.x === derniereXY.x && pos.y === derniereXY.y)) {
       derniereXY = { x: pos.x, y: pos.y };
       return;
     }
     derniereXY = { x: pos.x, y: pos.y };
     const cb = lireCb2();
-    if (cb < 0x08000000 || cb >= 0x0A000000) return;   // pas un pointeur ROM
+    if (!estPtrRom(cb)) return;
     if (cb === cbCandidat) {
-      if (++cbSerie >= 4 && cb2Connu !== cb) {
+      if (++cbSerie >= 4) {
         cb2Connu = cb;
-        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, cb.toString(16)); } catch (e) {}
+        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, c: cb2Connu })); } catch (e) {}
       }
     } else {
       cbCandidat = cb;
@@ -158,5 +180,5 @@
     return null;
   }
 
-  window.Valdoria.position = { readMyPos, estSurCarte };
+  window.Valdoria.position = { readMyPos, estSurCarte, _diag: function () { return { addr: cb2Addr, connu: cb2Connu, cur: lireCb2(), trouve: trouveCb2Addr() }; } };
 })(window);
