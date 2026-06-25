@@ -14,12 +14,9 @@
   // apprise, on affiche tout comme avant — jamais pire que l'existant.
   const forceCb2 = params.get("cb2");
   let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : 0x03005058;
-  let cb2Connu = null;
+  let cb2Set = null;
   let cb2Charge = false;
-  let cbCandidat = 0;
-  let cbSerie = 0;
   let derniereXY = null;
-  let dernierScan = 0;
 
   function estPtrRom(v) { return v >= 0x08000000 && v < 0x09000000; }
   function lire32(a) { try { return state.gba.mmu.load32(a) >>> 0; } catch (e) { return 0; } }
@@ -39,7 +36,7 @@
 
   function cleCb2() {
     const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
-    return cart && cart.code ? "valdoria.cb3." + cart.code : null;
+    return cart && cart.code ? "valdoria.cb4." + cart.code : null;
   }
 
   function lireCb2() { return cb2Addr !== null ? lire32(cb2Addr) : 0; }
@@ -47,18 +44,16 @@
   function apprendCb2(pos) {
     if (!cb2Charge) {
       cb2Charge = true;
+      cb2Set = {};
       try {
         const k = cleCb2();
         const v = k ? window.localStorage.getItem(k) : null;
-        if (v) { const o = JSON.parse(v); if (o && (o.a >>> 0) === cb2Addr && o.c) { cb2Connu = o.c >>> 0; } }
+        if (v) { const o = JSON.parse(v); if (o && (o.a >>> 0) === cb2Addr && Array.isArray(o.s)) { o.s.forEach(function (x) { cb2Set[x >>> 0] = 1; }); } }
       } catch (e) { /* stockage indisponible */ }
     }
-    if (cb2Addr === null) {
-      const now = Date.now();
-      if (now - dernierScan > 2000) { dernierScan = now; cb2Addr = trouveCb2Addr(); }
-      if (cb2Addr === null) return;
-    }
-    if (cb2Connu !== null) return;
+    // On apprend les valeurs "exploration" du callback UNIQUEMENT quand le
+    // joueur MARCHE (position qui change = on est bien sur la carte). Les
+    // menus / combats / generique figent la position -> jamais ajoutes.
     if (!derniereXY || (pos.x === derniereXY.x && pos.y === derniereXY.y)) {
       derniereXY = { x: pos.x, y: pos.y };
       return;
@@ -66,22 +61,17 @@
     derniereXY = { x: pos.x, y: pos.y };
     const cb = lireCb2();
     if (!estPtrRom(cb)) return;
-    if (cb === cbCandidat) {
-      if (++cbSerie >= 3) {
-        cb2Connu = cb;
-        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, c: cb2Connu })); } catch (e) {}
-      }
-    } else {
-      cbCandidat = cb;
-      cbSerie = 1;
+    if (!cb2Set[cb]) {
+      cb2Set[cb] = 1;
+      try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, s: Object.keys(cb2Set).map(Number) })); } catch (e) {}
     }
   }
 
   // true = overworld (ou détection pas encore apprise), false = combat,
   // cinématique, menu titre… : l'overlay ne doit rien dessiner.
   function estSurCarte() {
-    if (!state.gba || !state.gba.rom || cb2Connu === null) return true;
-    return lireCb2() === cb2Connu;
+    if (!state.gba || !state.gba.rom || !cb2Set || !Object.keys(cb2Set).length) return true;
+    return !!cb2Set[lireCb2()];
   }
   const sb1Candidates = urlSb1 ? [parseInt(urlSb1, 16)] : [0x03005008, 0x0300500C, 0x03005010];
   let sb1Found = null;
@@ -180,5 +170,5 @@
     return null;
   }
 
-  window.Valdoria.position = { readMyPos, estSurCarte, _diag: function () { return { addr: cb2Addr, connu: cb2Connu, cur: lireCb2(), trouve: trouveCb2Addr() }; } };
+  window.Valdoria.position = { readMyPos, estSurCarte, _diag: function () { return { addr: cb2Addr, set: cb2Set ? Object.keys(cb2Set) : null, cur: lireCb2() }; } };
 })(window);
