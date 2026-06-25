@@ -777,7 +777,7 @@ body.is-playing .mobile-drawer-head { display:flex; }
   }
   .touch-btn.system {
     position:absolute;
-    bottom:calc(env(safe-area-inset-bottom) + 124px);
+    bottom:calc(env(safe-area-inset-bottom) + 162px);
     height:30px;
     min-width:72px;
     font-size:.5rem;
