@@ -130,7 +130,7 @@
     window.addEventListener("keyup", function (e) { h(e, false); });
   }
 
-  var IG, inited = false, lastSave = null, audioOn = false, paused = false;
+  var IG, inited = false, lastSave = null, audioOn = false, paused = false, partieSupprimee = false;
   var volumeVoulu = 1; try { var _v0 = parseFloat(window.localStorage.getItem("valdoria.volume")); if (_v0 >= 0 && _v0 <= 1) volumeVoulu = _v0; } catch (e) {}
   var ipsFrames = 0, ipsAt = 0, biosBuf = null;
 
@@ -208,6 +208,7 @@
     window.writeRedTemporaryText = window.writeRedTemporaryText || function () {};
     try {
       Iodine.attachSaveExportHandler(function (name, save) {
+        if (partieSupprimee) return;
         try { ExportSaveCallback(name, save); } catch (e) {}
         if (name && ("" + name).indexOf("TYPE_") !== 0) { lastSave = save; updateSaveBtn(); }
       });
@@ -391,6 +392,23 @@
     return true;
   }
 
+  // Supprime la sauvegarde LOCALE du jeu (toutes les cles localStorage du .sav).
+  function deleteSave() {
+    partieSupprimee = true;
+    var name = (state.gba && state.gba.mmu && state.gba.mmu.cart.code) || "";
+    try {
+      if (name) { try { window.localStorage.removeItem("SAVE_" + name); } catch (e) {} }
+      var aSupp = [];
+      for (var i = 0; i < window.localStorage.length; i++) {
+        var k = window.localStorage.key(i);
+        if (k && (k.indexOf("SAVE_") === 0 || k.indexOf("SAVE_") > 0 || /IodineGBA/i.test(k))) aSupp.push(k);
+      }
+      aSupp.forEach(function (k) { try { window.localStorage.removeItem(k); } catch (e) {} });
+      lastSave = null;
+    } catch (e) {}
+    return true;
+  }
+
   // Volume (0..1) : agit sur le mixer audio + persiste ; active le son si on monte.
   function setVolume(v) {
     v = Math.min(Math.max(v, 0), 1);
@@ -410,6 +428,7 @@
     downloadSave: downloadSave,
     getSaveBase64: getSaveBase64,
     restoreSaveBase64: restoreSaveBase64,
+    deleteSave: deleteSave,
     setVolume: setVolume,
     getVolume: getVolume
   };

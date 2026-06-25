@@ -10,7 +10,7 @@
   var CLE_HASH = "valdoria.cloudHash";   // hash du dernier .sav envoye (eco)
   var BASE = "monde/saves/";
 
-  var db = null, monCode = null, timer = null, listeners = false;
+  var db = null, monCode = null, timer = null, listeners = false, enSuppression = false;
 
   function $(id) { return document.getElementById(id); }
 
@@ -64,6 +64,7 @@
 
   // --- envoi (eco : seulement si la sauvegarde a change) ---
   async function envoie() {
+    if (enSuppression) return "supprime";
     if (!db) return "pasdb";
     var emu = V.emulator; if (!emu || !emu.getSaveBase64) return "pasemu";
     var b64 = emu.getSaveBase64(); if (!b64) return "vide";              // pas de save / vide
@@ -179,13 +180,33 @@
       : ("Code adopte : " + monCode + ".\nPas encore de sauvegarde en ligne pour ce code ; tes prochaines sauvegardes iront dessus."));
   }
 
+  // Supprime DEFINITIVEMENT la partie : enregistrement cloud + sauvegarde locale.
+  async function supprimerPartie() {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement votre partie ?\n\nCette action est IRRÉVERSIBLE : ta sauvegarde sera effacée en local ET en ligne (cloud).")) return;
+    enSuppression = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    var code = getCode();
+    if (db) {
+      try { await db.ref(BASE + cleFB(code)).set(""); } catch (e) {}
+      try { await db.ref(BASE + cleFB(code)).remove(); } catch (e) {}
+    }
+    try { if (V.emulator && V.emulator.deleteSave) V.emulator.deleteSave(); } catch (e) {}
+    try { window.localStorage.removeItem(CLE_HASH); } catch (e) {}
+    try { window.localStorage.removeItem(CLE_CODE); } catch (e) {}
+    monCode = null;
+    window.alert("Partie supprimée (local + en ligne). La page va se recharger pour repartir à zéro.");
+    try { window.location.reload(); } catch (e) {}
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     majUI();
     var up1 = $("cloudSaveBtn"); if (up1) up1.addEventListener("click", envoieManuel);
     var up2 = $("drawerCloudSaveBtn"); if (up2) up2.addEventListener("click", envoieManuel);
     var r1 = $("cloudRestoreBtn"); if (r1) r1.addEventListener("click", function () { faireRestaure("cloudCodeInput"); });
     var r2 = $("drawerCloudRestoreBtn"); if (r2) r2.addEventListener("click", function () { faireRestaure("drawerCloudCodeInput"); });
+    var del1 = $("cloudDeleteBtn"); if (del1) del1.addEventListener("click", supprimerPartie);
+    var del2 = $("drawerCloudDeleteBtn"); if (del2) del2.addEventListener("click", supprimerPartie);
   });
 
-  V.cloudsave = { connectDb: connectDb, getCode: getCode, restaurer: restaurer, envoie: envoie, envoieManuel: envoieManuel };
+  V.cloudsave = { connectDb: connectDb, getCode: getCode, restaurer: restaurer, envoie: envoie, envoieManuel: envoieManuel, supprimerPartie: supprimerPartie };
 })(window);
