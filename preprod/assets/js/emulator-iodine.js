@@ -391,6 +391,22 @@
     return true;
   }
 
+  // Supprime la sauvegarde LOCALE du jeu (toutes les cles localStorage du .sav).
+  function deleteSave() {
+    var name = (state.gba && state.gba.mmu && state.gba.mmu.cart.code) || "";
+    try {
+      if (name) { try { window.localStorage.removeItem("SAVE_" + name); } catch (e) {} }
+      var aSupp = [];
+      for (var i = 0; i < window.localStorage.length; i++) {
+        var k = window.localStorage.key(i);
+        if (k && (k.indexOf("SAVE_") === 0 || k.indexOf("SAVE_") > 0 || /IodineGBA/i.test(k))) aSupp.push(k);
+      }
+      aSupp.forEach(function (k) { try { window.localStorage.removeItem(k); } catch (e) {} });
+      lastSave = null;
+    } catch (e) {}
+    return true;
+  }
+
   // Volume (0..1) : agit sur le mixer audio + persiste ; active le son si on monte.
   function setVolume(v) {
     v = Math.min(Math.max(v, 0), 1);
@@ -410,6 +426,7 @@
     downloadSave: downloadSave,
     getSaveBase64: getSaveBase64,
     restoreSaveBase64: restoreSaveBase64,
+    deleteSave: deleteSave,
     setVolume: setVolume,
     getVolume: getVolume
   };
