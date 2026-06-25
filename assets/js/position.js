@@ -12,42 +12,62 @@
   // l'échantillonnant pendant que le joueur MARCHE (la position change),
   // puis on la retient (localStorage par ROM). Tant qu'elle n'est pas
   // apprise, on affiche tout comme avant — jamais pire que l'existant.
-  const CB2_ADDR = parseInt(params.get("cb2") || "0x030030F4", 16);
-  let cb2Connu = null;
+  const forceCb2 = params.get("cb2");
+  let cb2Addr = forceCb2 ? (parseInt(forceCb2, 16) >>> 0) : 0x03005058;
+  let cb2Set = null;
   let cb2Charge = false;
   let cbCandidat = 0;
   let cbSerie = 0;
   let derniereXY = null;
 
-  function cleCb2() {
-    const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
-    return cart && cart.code ? "valdoria.cb2." + cart.code : null;
+  function estPtrRom(v) { return v >= 0x08000000 && v < 0x09000000; }
+  function lire32(a) { try { return state.gba.mmu.load32(a) >>> 0; } catch (e) { return 0; } }
+
+  // Localise gMain : callback1 + callback2 = pointeurs ROM, au moins 2 autres
+  // handlers ROM dans la foulee, et intrCheck (gMain+0x1C) qui n'est PAS un
+  // pointeur ROM. callback2 = gMain+4.
+  function trouveCb2Addr() {
+    for (let a = 0x03002000; a < 0x03004F00; a += 4) {
+      if (!estPtrRom(lire32(a)) || !estPtrRom(lire32(a + 4))) continue;
+      let autres = 0;
+      for (let k = 2; k <= 6; k++) if (estPtrRom(lire32(a + k * 4))) autres++;
+      if (autres >= 2 && !estPtrRom(lire32(a + 0x1C))) return a + 4;
+    }
+    return null;
   }
 
-  function lireCb2() {
-    try { return state.gba.mmu.load32(CB2_ADDR) >>> 0; } catch (e) { return 0; }
+  function cleCb2() {
+    const cart = state.gba && state.gba.mmu ? state.gba.mmu.cart : null;
+    return cart && cart.code ? "valdoria.cb5." + cart.code : null;
   }
+
+  function lireCb2() { return cb2Addr !== null ? lire32(cb2Addr) : 0; }
 
   function apprendCb2(pos) {
     if (!cb2Charge) {
       cb2Charge = true;
+      cb2Set = {};
       try {
         const k = cleCb2();
         const v = k ? window.localStorage.getItem(k) : null;
-        if (v) cb2Connu = parseInt(v, 16) >>> 0;
+        if (v) { const o = JSON.parse(v); if (o && (o.a >>> 0) === cb2Addr && Array.isArray(o.s)) { o.s.forEach(function (x) { cb2Set[x >>> 0] = 1; }); } }
       } catch (e) { /* stockage indisponible */ }
     }
+    // On apprend les valeurs "exploration" du callback UNIQUEMENT quand le
+    // joueur MARCHE (position qui change = on est bien sur la carte). Les
+    // menus / combats / generique figent la position -> jamais ajoutes.
     if (!derniereXY || (pos.x === derniereXY.x && pos.y === derniereXY.y)) {
       derniereXY = { x: pos.x, y: pos.y };
       return;
     }
     derniereXY = { x: pos.x, y: pos.y };
     const cb = lireCb2();
-    if (cb < 0x08000000 || cb >= 0x0A000000) return;   // pas un pointeur ROM
+    if (!estPtrRom(cb)) { cbCandidat = 0; cbSerie = 0; return; }
     if (cb === cbCandidat) {
-      if (++cbSerie >= 4 && cb2Connu !== cb) {
-        cb2Connu = cb;
-        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, cb.toString(16)); } catch (e) {}
+      cbSerie++;
+      if (cbSerie >= 3 && !cb2Set[cb]) {
+        cb2Set[cb] = 1;
+        try { const k = cleCb2(); if (k) window.localStorage.setItem(k, JSON.stringify({ a: cb2Addr, s: Object.keys(cb2Set).map(Number) })); } catch (e) {}
       }
     } else {
       cbCandidat = cb;
@@ -58,8 +78,8 @@
   // true = overworld (ou détection pas encore apprise), false = combat,
   // cinématique, menu titre… : l'overlay ne doit rien dessiner.
   function estSurCarte() {
-    if (!state.gba || !state.gba.rom || cb2Connu === null) return true;
-    return lireCb2() === cb2Connu;
+    if (!state.gba || !state.gba.rom || !cb2Set || !Object.keys(cb2Set).length) return true;
+    return !!cb2Set[lireCb2()];
   }
   const sb1Candidates = urlSb1 ? [parseInt(urlSb1, 16)] : [0x03005008, 0x0300500C, 0x03005010];
   let sb1Found = null;
@@ -158,5 +178,5 @@
     return null;
   }
 
-  window.Valdoria.position = { readMyPos, estSurCarte };
+  window.Valdoria.position = { readMyPos, estSurCarte, _diag: function () { return { addr: cb2Addr, set: cb2Set ? Object.keys(cb2Set) : null, cur: lireCb2() }; } };
 })(window);
