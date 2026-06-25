@@ -57,9 +57,31 @@
     await loadSim();
     var eq = C().decodeBattleTeam();
     if (!eq || !eq.length) { window.alert("Lance ta partie et avance un peu en jeu, puis réessaie."); return null; }
-    var set = toSet(eq[0]); if (!set) { window.alert("Équipe illisible."); return null; }
-    return { set: set, decoded: eq[0] };
+    var sets = eq.map(toSet).filter(Boolean); if (!sets.length) { window.alert("Équipe illisible."); return null; }
+    return { set: sets, decoded: eq };
   }
+  // Firebase peut renvoyer un tableau sous forme d'objet {0:..,1:..} : on reconstruit un vrai tableau.
+  function arr(x) {
+    if (Array.isArray(x)) return x;
+    if (x && typeof x === "object") { var k = Object.keys(x).filter(function (z) { return /^\d+$/.test(z); }).sort(function (a, b) { return a - b; }); if (k.length) return k.map(function (z) { return x[z]; }); }
+    return x ? [x] : [];
+  }
+  function pkInfo(pk) {
+    var nom = ((pk.details || "") + "").split(",")[0];
+    var cond = pk.condition || "";
+    return { name: nom, fainted: cond.indexOf("fnt") >= 0, active: !!pk.active, cond: cond };
+  }
+  // Resume d'une requete Showdown pour un camp : attaques jouables / changement force / etat de l'equipe.
+  function reqPayload(side) {
+    var rq = side && side.activeRequest;
+    if (!rq || rq.wait) return { wait: true };
+    var p = { wait: false };
+    if (rq.forceSwitch && rq.forceSwitch[0]) p.forceSwitch = true;
+    else if (rq.active && rq.active[0] && rq.active[0].moves) p.moves = rq.active[0].moves.map(function (m) { return { move: m.move, id: m.id, pp: (m.pp != null ? m.pp : null), maxpp: (m.maxpp != null ? m.maxpp : null), disabled: !!m.disabled }; });
+    p.team = (rq.side && rq.side.pokemon || []).map(pkInfo);
+    return p;
+  }
+  function myReqView() { return etat.mode === "invite" ? (etat.reqInvite || { wait: true }) : reqPayload(etat.sim && etat.sim.sides[0]); }
   function omniscient(lines) { var o = []; for (var i = 0; i < lines.length; i++) { if (lines[i].indexOf("|split|") === 0) { if (i + 1 < lines.length) o.push(lines[i + 1]); i += 2; continue; } o.push(lines[i]); } return o; }
   function nick(s) { return ("" + s).split(": ")[1] || s; }
   function mv(n) { return mvFr[n] || n; }
@@ -77,6 +99,7 @@
     if (t === "-unboost") return (STATFR[p[3]] || p[3]) + " de " + nick(p[2]) + " baisse !";
     if (t === "cant") return nick(p[2]) + " ne peut pas attaquer !";
     if (t === "-heal") return nick(p[2]) + " récupère des PV.";
+    if (t === "switch" || t === "drag") return nick(p[2]) + " entre en jeu !";
     return null;
   }
 
@@ -141,39 +164,75 @@
   }
 
   function aiChoice() {
-    var req = etat.sim.sides[1].activeRequest;
-    if (req && req.active && req.active[0] && req.active[0].moves) { var o = []; req.active[0].moves.forEach(function (m, i) { if (!m.disabled && (m.pp == null || m.pp > 0)) o.push(i + 1); }); if (o.length) return "move " + o[Math.floor(Math.random() * o.length)]; }
+    var rq = etat.sim.sides[1].activeRequest;
+    if (!rq || rq.wait) return "";
+    if (rq.forceSwitch && rq.forceSwitch[0]) {
+      var pk = (rq.side && rq.side.pokemon) || [];
+      for (var j = 0; j < pk.length; j++) { if (!pk[j].active && (pk[j].condition || "").indexOf("fnt") < 0) return "switch " + (j + 1); }
+      return "default";
+    }
+    if (rq.active && rq.active[0] && rq.active[0].moves) { var o = []; rq.active[0].moves.forEach(function (m, i) { if (!m.disabled && (m.pp == null || m.pp > 0)) o.push(i + 1); }); if (o.length) return "move " + o[Math.floor(Math.random() * o.length)]; }
     return "default";
   }
   function renderMoves() {
     var box = $("cbMoves"); if (!box) return; box.textContent = "";
-    var moves;
-    if (etat.mode === "invite") moves = etat.reqMoves || [];
-    else { var req = etat.sim && etat.sim.sides[0].activeRequest; moves = (req && req.active && req.active[0] && req.active[0].moves) || []; }
-    moves.forEach(function (m, i) {
-      var b = document.createElement("button"); b.type = "button"; b.className = "cb-move";
-      var md = gen3.moves.get(m.id), col = (md && TCOL[md.type]) || "#888"; b.style.borderColor = col;
-      var romId = etat.moiDecoded && etat.moiDecoded.moves[i];
-      var nom = (romId && C().moveName(romId)) || mv(m.move || m.id);
-      b.innerHTML = '<span class="n" style="color:' + col + '">' + esc(nom) + '</span><span class="i">PP ' + (m.pp != null ? m.pp : "?") + "/" + (m.maxpp != null ? m.maxpp : "?") + '</span>';
-      if (m.disabled || etat.fini || etat.attente) b.disabled = true;
-      b.addEventListener("click", function () { jouer(i + 1); });
-      box.appendChild(b);
-    });
+    var v = myReqView(); var dis = etat.fini || etat.attente;
+    if (v.moves && !v.forceSwitch) {
+      v.moves.forEach(function (m, i) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "cb-move";
+        var md = gen3.moves.get(m.id), col = (md && TCOL[md.type]) || "#888"; b.style.borderColor = col;
+        b.innerHTML = '<span class="n" style="color:' + col + '">' + esc(mv(m.move || m.id)) + '</span><span class="i">PP ' + (m.pp != null ? m.pp : "?") + "/" + (m.maxpp != null ? m.maxpp : "?") + '</span>';
+        if (m.disabled || dis) b.disabled = true;
+        b.addEventListener("click", function () { faireChoix("move " + (i + 1)); });
+        box.appendChild(b);
+      });
+    }
+    var banc = [];
+    (v.team || []).forEach(function (pk, idx) { if (!pk.active && !pk.fainted) banc.push({ pk: pk, slot: idx + 1 }); });
+    if (v.forceSwitch || banc.length) {
+      var lab = document.createElement("div"); lab.className = "cb-switch-lab";
+      lab.textContent = v.forceSwitch ? "K.O. ! Envoie un autre Pokémon :" : "Changer de Pokémon :";
+      box.appendChild(lab);
+      banc.forEach(function (o) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "cb-switch";
+        b.innerHTML = '<span class="n">🔁 ' + esc(o.pk.name) + '</span><span class="i">' + esc(o.pk.cond || "") + '</span>';
+        if (dis) b.disabled = true;
+        b.addEventListener("click", function () { faireChoix("switch " + o.slot); });
+        box.appendChild(b);
+      });
+    }
     if (etat.attente && !etat.fini && etat.mode !== "local") { var p = document.createElement("p"); p.className = "cb-wait"; p.textContent = "⏳ En attente de l'adversaire…"; box.appendChild(p); }
   }
-  async function jouer(n) {
+  function faireChoix(choix) {
     if (!etat || etat.fini || etat.attente) return;
     nudgeAudio();
-    if (etat.mode === "invite") { etat.attente = true; renderMoves(); try { etat.ref.child("choixInvite").set("move " + n); } catch (e) {} return; }
     etat.attente = true; renderMoves();
-    if (etat.mode === "local") {
-      try { etat.sim.makeChoices("move " + n, aiChoice()); } catch (e) { etat.attente = false; renderMoves(); return; }
-      var neuf = omniscient(etat.sim.log.slice(etat.rawIdx)); etat.rawIdx = etat.sim.log.length;
-      feedTurn(neuf); neuf.forEach(function (l) { var m = frMsg(l); if (m) logLigne(m); });
-      await waitAnim(); if (!etat) return;
-      if (etat.sim.ended) finir(); else { etat.attente = false; renderMoves(); }
-    } else if (etat.mode === "hote") { etat.monChoix = "move " + n; tryResolveHost(); }
+    if (etat.mode === "invite") { try { etat.ref.child("choixInvite").set(choix); } catch (e) {} return; }
+    if (etat.mode === "local") { faireChoixLocal(choix); return; }
+    if (etat.mode === "hote") { etat.monChoix = choix; tryResolveHost(); }
+  }
+  async function appliquerLog() {
+    var neuf = omniscient(etat.sim.log.slice(etat.rawIdx)); etat.rawIdx = etat.sim.log.length;
+    feedTurn(neuf); neuf.forEach(function (l) { var m = frMsg(l); if (m) logLigne(m); });
+    await waitAnim();
+  }
+  async function faireChoixLocal(monChoix) {
+    var s1 = etat.sim.sides[1].activeRequest; var need1 = s1 && !s1.wait;
+    try { etat.sim.choose("p1", monChoix); if (need1) etat.sim.choose("p2", aiChoice()); } catch (e) { etat.attente = false; renderMoves(); return; }
+    await appliquerLog(); if (!etat) return;
+    if (etat.sim.ended) { finir(); return; }
+    await avancerLocal();
+  }
+  // Enchaine les etapes ou SEULE l'IA doit jouer (changement force), puis rend la main au joueur.
+  async function avancerLocal() {
+    while (etat && !etat.sim.ended) {
+      var s0 = etat.sim.sides[0].activeRequest, s1 = etat.sim.sides[1].activeRequest;
+      var need0 = s0 && !s0.wait, need1 = s1 && !s1.wait;
+      if (need0) { etat.attente = false; renderMoves(); return; }
+      if (need1) { try { etat.sim.choose("p2", aiChoice()); } catch (e) { return; } await appliquerLog(); if (!etat) return; continue; }
+      return;
+    }
+    if (etat && etat.sim.ended) finir();
   }
   function finir() { etat.fini = true; renderMoves(); var w = etat.sim.winner; setStatus(w === "Toi" ? "🏆 Tu remportes le combat !" : (w ? "💀 Tu as perdu le combat…" : "Combat terminé.")); }
   function finOnline(res) {
@@ -188,10 +247,10 @@
       if (!C().decodeBattleTeam) { window.alert("Module pas prêt, recharge la page."); return; }
       setStatus("Préparation… (~5 s la 1ère fois)"); await loadSim();
       var eq = C().decodeBattleTeam(); if (!eq || !eq.length) { window.alert("Lance ta partie et avance un peu en jeu, puis réessaie."); return; }
-      var moi = toSet(eq[0]), adv = toSet(eq[1] || eq[0]); if (!moi || !adv) { window.alert("Équipe illisible."); return; }
-      if (!eq[1]) adv.name = adv.name + " (clone)";
-      var b = new sim.Battle({ formatid: "gen3customgame", p1: { name: "Toi", team: [moi] }, p2: { name: "Adversaire", team: [adv] } });
-      etat = { mode: "local", sim: b, moiDecoded: eq[0], rawIdx: b.log.length, fini: false, attente: true };
+      var moi = eq.map(toSet).filter(Boolean); if (!moi.length) { window.alert("Équipe illisible."); return; }
+      var adv = JSON.parse(JSON.stringify(moi)); adv[0].name = (adv[0].name || "Adversaire") + " (clone)";
+      var b = new sim.Battle({ formatid: "gen3customgame", p1: { name: "Toi", team: moi }, p2: { name: "Adversaire", team: adv } });
+      etat = { mode: "local", sim: b, rawIdx: b.log.length, fini: false, attente: true };
       var ok = await showArene(omniscient(b.log).join("\n"), false);
       if (!etat || !ok) return;
       etat.attente = false; renderMoves();
@@ -201,7 +260,7 @@
   // ---------- ONLINE : HÔTE ----------
   function hostRoom(code, mine) {
     var db = DB(); var ref = db.ref(sess(code));
-    etat = { mode: "hote", role: "hote", ref: ref, code: code, moiDecoded: mine.decoded, mySet: mine.set, p1name: monTag() || "Toi", started: false, fini: false, attente: true, tour: 1, choixInvite: null, monChoix: null };
+    etat = { mode: "hote", role: "hote", ref: ref, code: code, mySet: mine.set, p1name: monTag() || "Toi", started: false, fini: false, attente: true, tour: 1, choixInvite: null, monChoix: null };
     ref.set({ hote: monTag() || "Toi", etat: "attente", eqHote: mine.set, t: TS() });
     try { ref.onDisconnect().remove(); } catch (e) {}
     ref.on("value", onHostRoom);
@@ -213,35 +272,39 @@
     if (!etat.started && r.eqInvite) {
       etat.started = true;
       stopAttente();
-      var advSet = typeof r.eqInvite === "string" ? JSON.parse(r.eqInvite) : r.eqInvite;
+      var advSet = arr(typeof r.eqInvite === "string" ? JSON.parse(r.eqInvite) : r.eqInvite);
       var advName = r.invite || "Adversaire";
-      var b = new sim.Battle({ formatid: "gen3customgame", p1: { name: etat.p1name, team: [etat.mySet] }, p2: { name: advName, team: [advSet] } });
+      var b = new sim.Battle({ formatid: "gen3customgame", p1: { name: etat.p1name, team: arr(etat.mySet) }, p2: { name: advName, team: advSet } });
       etat.sim = b; etat.rawIdx = b.log.length;
-      var req = b.sides[1].activeRequest, rm = (req && req.active && req.active[0] && req.active[0].moves) || null;
-      try { etat.ref.update({ etat: "jeu", log: omniscient(b.log).join("\n"), reqInvite: rm, tour: 1 }); } catch (e) {}
+      try { etat.ref.update({ etat: "jeu", log: omniscient(b.log).join("\n"), reqInvite: reqPayload(b.sides[1]), tour: 1 }); } catch (e) {}
       var ok = await showArene(omniscient(b.log).join("\n"), false);
       if (!etat || !ok) return;
-      etat.attente = false; renderMoves();
+      var n0 = b.sides[0].activeRequest; etat.attente = !(n0 && !n0.wait); renderMoves();
       return;
     }
     if (etat.started && r.choixInvite && r.choixInvite !== etat.choixInvite) { etat.choixInvite = r.choixInvite; tryResolveHost(); }
   }
   async function tryResolveHost() {
     if (!etat || etat.mode !== "hote" || etat.fini || etat.resolving) return;
-    if (!etat.monChoix || !etat.choixInvite) return;
+    var s0 = etat.sim.sides[0].activeRequest, s1 = etat.sim.sides[1].activeRequest;
+    var need0 = s0 && !s0.wait, need1 = s1 && !s1.wait;
+    if (need0 && !etat.monChoix) return;
+    if (need1 && !etat.choixInvite) return;
+    if (!need0 && !need1) return;
     etat.resolving = true;
-    var ch = etat.monChoix, ci = etat.choixInvite; etat.monChoix = null; etat.choixInvite = null;
+    var ch = need0 ? etat.monChoix : "", ci = need1 ? etat.choixInvite : ""; etat.monChoix = null; etat.choixInvite = null;
     try { etat.ref.child("choixHote").remove(); etat.ref.child("choixInvite").remove(); } catch (e) {}
-    try { etat.sim.makeChoices(ch, ci); } catch (e) { etat.resolving = false; etat.attente = false; renderMoves(); return; }
+    try { if (need0) etat.sim.choose("p1", ch); if (need1) etat.sim.choose("p2", ci); } catch (e) { etat.resolving = false; etat.attente = false; renderMoves(); return; }
     var neuf = omniscient(etat.sim.log.slice(etat.rawIdx)); etat.rawIdx = etat.sim.log.length;
-    var req = etat.sim.sides[1].activeRequest, rm = (req && req.active && req.active[0] && req.active[0].moves) || null;
-    var upd = { log: omniscient(etat.sim.log).join("\n"), reqInvite: rm, tour: (etat.tour = (etat.tour || 1) + 1) };
+    var upd = { log: omniscient(etat.sim.log).join("\n"), reqInvite: reqPayload(etat.sim.sides[1]), tour: (etat.tour = (etat.tour || 1) + 1) };
     if (etat.sim.ended) upd.fin = etat.sim.winner === etat.p1name ? "hote" : (etat.sim.winner ? "invite" : "nul");
     try { etat.ref.update(upd); } catch (e) {}
     feedTurn(neuf); neuf.forEach(function (l) { var m = frMsg(l); if (m) logLigne(m); });
     await waitAnim(); if (!etat) return;
     etat.resolving = false;
-    if (etat.sim.ended) finOnline(upd.fin === "hote" ? "win" : upd.fin === "invite" ? "lose" : "nul"); else { etat.attente = false; renderMoves(); }
+    if (etat.sim.ended) { finOnline(upd.fin === "hote" ? "win" : upd.fin === "invite" ? "lose" : "nul"); return; }
+    var n0 = etat.sim.sides[0].activeRequest; etat.attente = !(n0 && !n0.wait); renderMoves();
+    tryResolveHost();
   }
 
   // ---------- ONLINE : INVITÉ ----------
@@ -250,7 +313,7 @@
     var mine = await prepareMonSet(); if (!mine) return;
     var ref = db.ref(sess(code));
     var s = await ref.once("value"); if (!s.val()) { window.alert("Combat introuvable (expiré ?)."); onlineHide(); return; }
-    etat = { mode: "invite", role: "invite", ref: ref, code: code, moiDecoded: mine.decoded, logSeen: 0, areneShown: false, fini: false, attente: true, reqMoves: null };
+    etat = { mode: "invite", role: "invite", ref: ref, code: code, logSeen: 0, areneShown: false, fini: false, attente: true, reqInvite: null };
     try { ref.update({ invite: monTag() || "Invité", eqInvite: mine.set }); } catch (e) {}
     ref.on("value", onGuestRoom);
   }
@@ -259,22 +322,22 @@
     var r = snap.val();
     if (!r) { if (!etat.fini) { setStatus("L'adversaire a quitté."); etat.fini = true; etat.attente = true; renderMoves(); } return; }
     if (r.etat === "jeu" && r.log && !etat.areneShown) {
-      etat.areneShown = true; etat.reqMoves = r.reqInvite || [];
+      etat.areneShown = true; etat.reqInvite = r.reqInvite || { wait: true };
       var ok = await showArene(r.log, true);
       if (!etat || !ok) return;
       etat.logSeen = r.log.length;
       if (r.fin) { finOnline(r.fin === "invite" ? "win" : "lose"); return; }
-      etat.attente = false; renderMoves();
+      etat.attente = !(etat.reqInvite && !etat.reqInvite.wait); renderMoves();
       return;
     }
     if (etat.areneShown && r.log && r.log.length > etat.logSeen) {
       var portion = r.log.slice(etat.logSeen).split("\n"); etat.logSeen = r.log.length;
-      etat.reqMoves = r.reqInvite || etat.reqMoves;
+      etat.reqInvite = r.reqInvite || etat.reqInvite;
       etat.attente = true; renderMoves();
       feedTurn(portion); portion.forEach(function (l) { var m = frMsg(l); if (m) logLigne(m); });
       await waitAnim(); if (!etat) return;
       if (r.fin) { finOnline(r.fin === "invite" ? "win" : "lose"); return; }
-      etat.attente = false; renderMoves();
+      etat.attente = !(etat.reqInvite && !etat.reqInvite.wait); renderMoves();
     }
   }
 

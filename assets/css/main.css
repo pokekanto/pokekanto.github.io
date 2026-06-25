@@ -977,6 +977,10 @@ body.is-playing #legendeZone {
 .cb-move { border:2px solid #3858a8; border-radius:7px; background:#fff; padding:8px; cursor:pointer; text-align:left; }
 .cb-move:disabled { opacity:.5; cursor:not-allowed; }
 .cb-move .n { display:block; font-weight:700; font-size:.82rem; } .cb-move .i { font-size:.64rem; color:#777; }
+.cb-switch-lab { grid-column:1/-1; font-weight:700; font-size:.72rem; margin:5px 0 1px; color:#444; }
+.cb-switch { border:2px solid #2e9e54; border-radius:7px; background:#f3fff6; padding:7px 8px; cursor:pointer; text-align:left; }
+.cb-switch:disabled { opacity:.5; cursor:not-allowed; }
+.cb-switch .n { display:block; font-weight:700; font-size:.78rem; color:#1d7a3c; } .cb-switch .i { font-size:.6rem; color:#777; }
 
 /* ---------- Animations de combat ---------- */
 @keyframes cb-lunge-moi { 0%{transform:translate(0,0);} 45%{transform:translate(45%,-45%);} 100%{transform:translate(0,0);} }
