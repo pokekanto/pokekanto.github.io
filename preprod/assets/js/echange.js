@@ -215,7 +215,7 @@
     choisiDirect = -1;
     if (role === "hote") { try { salon.ref.onDisconnect().remove(); } catch (e) {} }
     salon.ref.on("value", function (s) { surMajSalon(s.val()); });
-    salon.timer = setInterval(verifieSalon, 1300);
+    salon.timer = setInterval(verifieSalon, 700);
     $("echangeDirectIdle").setAttribute("hidden", "");
     $("echangeDirectRoom").removeAttribute("hidden");
     $("echangeRoomTitre").textContent = "Salon " + code + " — avec " + partenaire;
@@ -249,6 +249,39 @@
     dirStatut("Validé ✅ — en attente de la validation de l'autre…");
   }
 
+  // Joue une sequence de touches sur l'emulateur (Iodine), avec delais.
+  function joueSeqTouches(etapes, fini) {
+    var ig = window.IodineGUI && window.IodineGUI.Iodine;
+    if (!ig || !ig.keyDown) { if (fini) fini(); return; }
+    var t = 300;
+    etapes.forEach(function (e) {
+      setTimeout(function () { try { ig.keyDown(e[0]); } catch (x) {} setTimeout(function () { try { ig.keyUp(e[0]); } catch (x) {} }, 110); }, t);
+      t += e[1];
+    });
+    if (fini) setTimeout(fini, t + 500);
+  }
+  function finaliseCloud(nomRecu) {
+    function fin(extra) { dirStatut("✅ <strong>Échange terminé et sauvegardé</strong> ! Tu as reçu <strong>" + nomRecu + "</strong>." + (extra || "")); }
+    if (V.cloudsave && V.cloudsave.envoie) { V.cloudsave.envoie().then(function () { fin("<br>☁️ Copie en ligne OK."); }).catch(function () { fin(""); }); }
+    else { fin(""); }
+  }
+  // Sauvegarde AUTO obligatoire apres un echange en direct (anti-doublon) :
+  // ferme un eventuel menu, ouvre Start -> SAUVER, confirme, puis envoi cloud.
+  function sauvegardeAutoEtCloud(nomRecu) {
+    dirStatut("🎉 Échange réussi ! Tu as reçu <strong>" + nomRecu + "</strong>.<br>💾 Sauvegarde automatique… <strong>ne touche à rien</strong> (~10 s).");
+    var etapes = [
+      [1, 260], [1, 260],                                            // B x2 : ferme un menu eventuel
+      [3, 480],                                                      // Start : ouvre le menu
+      [6, 160], [6, 160], [6, 160], [6, 160], [6, 160], [6, 240],    // Haut x6 -> haut du menu
+      [7, 240], [7, 240], [7, 240], [7, 320],                        // Bas x4 -> SAUVER
+      [0, 1000],                                                     // A -> "Veux-tu sauvegarder ?"
+      [0, 1000],                                                     // A -> OUI
+      [0, 2900],                                                     // A -> OUI (ecraser) + sauvegarde
+      [0, 850],                                                      // A -> "a sauvegarde !"
+      [1, 300]                                                       // B -> ferme le menu
+    ];
+    joueSeqTouches(etapes, function () { finaliseCloud(nomRecu); });
+  }
   function faireSwap(sonOffre) {
     if (!salon || salon.recu || salon.fini) return;
     try {
@@ -263,7 +296,7 @@
       salon.ref.child(champMyFin()).set(true);
       var ch = $("echangeDirectChoix"); if (ch) ch.setAttribute("hidden", "");
       var bv = $("echangeBtnValider"); if (bv) bv.setAttribute("hidden", "");
-      dirStatut("🎉 Échange réussi ! Tu as reçu <strong>" + (sonOffre.nom || "un Pokémon") + "</strong>.<br>⚠️ Sauvegarde EN JEU (Start → Sauvegarder) pour le garder.");
+      sauvegardeAutoEtCloud(sonOffre.nom || "un Pokémon");
     } catch (e) { dirStatut("Souci pendant l'échange (" + (e && e.message ? e.message : e) + "). Réessaie."); }
   }
 
