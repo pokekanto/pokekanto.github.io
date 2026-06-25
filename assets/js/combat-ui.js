@@ -101,14 +101,25 @@
       var wrap = $("cbScaleWrap"); var d = etat.ifr.contentDocument; var bt = d.querySelector(".battle");
       var bw = (bt && bt.offsetWidth) || 642, bh = (bt && bt.offsetHeight) || 362;
       etat.ifr.style.width = bw + "px"; etat.ifr.style.height = bh + "px"; etat.ifr.style.transformOrigin = "top left";
+      var land = window.innerWidth > window.innerHeight && window.innerHeight < 560;
       var sw = document.getElementById("screenWrap");
       if (card) {
-        if (sw && window.innerWidth >= 820) { var gw = Math.round(sw.getBoundingClientRect().width); if (gw > 200) card.style.width = Math.min(gw + 40, Math.round(window.innerWidth * 0.96)) + "px"; }
+        if (sw && window.innerWidth >= 820 && !land) { var gw = Math.round(sw.getBoundingClientRect().width); if (gw > 200) card.style.width = Math.min(gw + 40, Math.round(window.innerWidth * 0.96)) + "px"; }
         else { card.style.width = ""; }
       }
-      var sc = Math.min(1.7, (wrap.clientWidth || 520) / bw);
-      etat.ifr.style.transform = "scale(" + sc + ")";
-      wrap.style.height = Math.ceil(bh * sc) + "px"; wrap.style.overflow = "hidden";
+      var sc;
+      if (land) {
+        sc = Math.min(1.7, (window.innerHeight - 40) / bh, (window.innerWidth * 0.55) / bw);
+        etat.ifr.style.transform = "scale(" + sc + ")";
+        wrap.style.width = Math.ceil(bw * sc) + "px";
+        wrap.style.height = Math.ceil(bh * sc) + "px";
+      } else {
+        wrap.style.width = "";
+        sc = Math.min(1.7, (wrap.clientWidth || 520) / bw);
+        etat.ifr.style.transform = "scale(" + sc + ")";
+        wrap.style.height = Math.ceil(bh * sc) + "px";
+      }
+      wrap.style.overflow = "hidden";
     } catch (e) {}
   }
   async function showArene(initLog, flip) {

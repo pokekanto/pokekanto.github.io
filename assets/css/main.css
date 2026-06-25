@@ -992,3 +992,19 @@ body.is-playing #legendeZone {
 .cb-scalewrap { width:100%; overflow:hidden; background:#000; border-radius:6px; margin-bottom:6px; min-height:60px; }
 #cbLogBox { max-height:80px; overflow:auto; font-size:.72rem; background:#fff; border:1px solid var(--creme2); border-radius:6px; margin-bottom:8px; padding:4px 7px; color:#222; line-height:1.4; }
 .cb-status { font-weight:700; color:var(--violet2); font-size:.85rem; min-height:1.1em; margin:4px 0; text-align:center; }
+
+/* ---------- Combat en ligne : layout PAYSAGE mobile (arene a gauche, attaques a droite) ---------- */
+#cbSide { display:contents; }
+@media (max-height: 560px) and (orientation: landscape) {
+  #combatPanel .combat-card { width:98vw; max-width:98vw; max-height:97vh; padding:8px 8px; overflow:hidden; }
+  #combatArene { display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; }
+  #cbScaleWrap { flex:0 0 auto; margin-bottom:0; }
+  #cbLogBox { display:none; }
+  #cbSide { display:flex; flex-direction:column; justify-content:center; flex:1 1 0; min-width:0; max-width:40%; gap:5px; }
+  #cbStatus { margin:0; font-size:.74rem; }
+  #cbMoves { gap:5px; }
+  #combatBtnQuitter { margin:2px 0 0; padding:6px; font-size:.72rem; }
+  .cb-move { padding:5px 7px; }
+  .cb-move .n { font-size:.72rem; }
+  .cb-move .i { font-size:.56rem; }
+}
