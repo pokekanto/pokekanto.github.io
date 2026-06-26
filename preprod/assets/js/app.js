@@ -106,8 +106,11 @@
   const drawerSoundBtn = $("drawerSoundBtn");
   if (drawerSoundBtn) drawerSoundBtn.addEventListener("click", emulator.toggleSound);
 
-  const hudSoundBtn = $("hudSoundBtn");
-  if (hudSoundBtn) hudSoundBtn.addEventListener("click", emulator.toggleSound);
+  const hudVolSlider = $("hudVolSlider");
+  if (hudVolSlider) {
+    try { if (emulator.getVolume) hudVolSlider.value = Math.round(emulator.getVolume() * 100); } catch (e) {}
+    hudVolSlider.addEventListener("input", () => emulator.setVolume(hudVolSlider.value / 100));
+  }
 
   const drawerImportBtn = $("drawerImportBtn");
   if (drawerImportBtn) drawerImportBtn.addEventListener("click", () => $("playSavInput").click());

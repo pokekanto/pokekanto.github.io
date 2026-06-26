@@ -906,6 +906,9 @@ body.is-playing #legendeZone {
 .mobile-hud-actions { display:flex; gap:6px; align-items:center; }
 .mobile-hud .topbtn { width:38px; height:38px; min-height:38px; padding:0; border-radius:10px; font-size:1.3rem;
   background:linear-gradient(180deg,var(--violet),var(--violet2)); box-shadow:0 3px 0 var(--violet3); pointer-events:auto; }
+.hud-vol { display:flex; align-items:center; gap:3px; pointer-events:auto; }
+.hud-vol-icon { font-size:.8rem; filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+#hudVolSlider { width:46px; accent-color:var(--violet); cursor:pointer; pointer-events:auto; }
 
 /* Boutons d'action entrante (Rejoindre / Recevoir) : léger éclat vert pour attirer l'œil */
 #echangeInvitesListe .echange-recevoir, #echangeRecusListe .echange-recevoir {
