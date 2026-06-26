@@ -903,9 +903,12 @@ body.is-playing #legendeZone {
   animation:badge-blink 1s ease-in-out infinite; }
 @keyframes badge-blink { 0%,100% { opacity:1; } 50% { opacity:.3; } }
 /* mobile : garder le carré (sinon .mobile-hud button impose la pilule rouge) */
-.mobile-hud-actions { display:flex; gap:8px; align-items:center; }
-.mobile-hud .topbtn { width:44px; height:44px; min-height:44px; padding:0; border-radius:11px; font-size:1.5rem;
+.mobile-hud-actions { display:flex; gap:6px; align-items:center; }
+.mobile-hud .topbtn { width:38px; height:38px; min-height:38px; padding:0; border-radius:10px; font-size:1.3rem;
   background:linear-gradient(180deg,var(--violet),var(--violet2)); box-shadow:0 3px 0 var(--violet3); pointer-events:auto; }
+.hud-vol { display:flex; align-items:center; gap:3px; pointer-events:auto; }
+.hud-vol-icon { font-size:.8rem; filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+#hudVolSlider { width:46px; accent-color:var(--violet); cursor:pointer; pointer-events:auto; }
 
 /* Boutons d'action entrante (Rejoindre / Recevoir) : léger éclat vert pour attirer l'œil */
 #echangeInvitesListe .echange-recevoir, #echangeRecusListe .echange-recevoir {
@@ -1023,3 +1026,6 @@ body.is-playing #legendeZone {
 /* ---------- Bouton "Supprimer ma partie" (danger) ---------- */
 .cloud-danger { display:block; width:100%; margin-top:12px; background:var(--rouge); color:#fff; border:none; border-radius:9px; padding:10px; font-weight:700; font-size:.84rem; cursor:pointer; box-shadow:0 2px 0 #7e1300; }
 .cloud-danger:active { transform:translateY(2px); box-shadow:0 0 0 #7e1300; }
+.discord-btn { display:block; width:100%; box-sizing:border-box; margin-top:12px; text-align:center; text-decoration:none; background:#5865F2; color:#fff; border:none; border-radius:9px; padding:10px; font-weight:700; font-size:.84rem; cursor:pointer; box-shadow:0 2px 0 #3c45a5; }
+.discord-btn:hover { background:#4752c4; }
+.discord-btn:active { transform:translateY(2px); box-shadow:0 0 0 #3c45a5; }

@@ -131,7 +131,7 @@
   }
 
   var IG, inited = false, lastSave = null, audioOn = false, paused = false, partieSupprimee = false;
-  var volumeVoulu = 1; try { var _v0 = parseFloat(window.localStorage.getItem("valdoria.volume")); if (_v0 >= 0 && _v0 <= 1) volumeVoulu = _v0; } catch (e) {}
+  var volumeVoulu = 0.2; try { var _v0 = parseFloat(window.localStorage.getItem("valdoria.volume")); if (_v0 >= 0 && _v0 <= 1) volumeVoulu = _v0; } catch (e) {}
   var ipsFrames = 0, ipsAt = 0, biosBuf = null;
 
   function setSoundBtn() {

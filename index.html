@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="assets/img/onglet.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=20260625m">
+<link rel="stylesheet" href="assets/css/main.css?v=20260625p">
 </head>
 <body>
 <video id="bgVideo" class="bg-video" autoplay loop muted playsinline>
@@ -39,6 +39,7 @@
     <div class="mobile-hud" aria-label="Menus mobiles">
       <button type="button" id="mobileValdoriaBtn">PokéKanto</button>
       <div class="mobile-hud-actions">
+        <div class="hud-vol"><span class="hud-vol-icon">🔊</span><input type="range" id="hudVolSlider" min="0" max="100" value="20" aria-label="Volume"></div>
         <button type="button" id="amisBtnOuvrir" class="topbtn" title="Amis" aria-label="Amis">👥</button>
         <button type="button" class="topbtn js-ech-open" title="Échange" aria-label="Échange">🔁<span class="echange-badge js-ech-badge" hidden></span></button>
         <button type="button" class="topbtn js-combat" title="Combat" aria-label="Combat">⚔️<span class="echange-badge js-combat-badge" hidden></span></button>
@@ -49,7 +50,7 @@
       <button type="button" id="settingsBtn" class="settings-btn" title="Réglages">⚙️ Réglages</button>
       <div id="volControl" class="vol-control">
         <span class="vol-icon">🔊</span>
-        <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="100" aria-label="Volume">
+        <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="20" aria-label="Volume">
       </div>
       <div class="top-actions">
         <button type="button" class="topbtn js-ech-open" title="Échange PokéKanto" aria-label="Échange">🔁<span class="echange-badge js-ech-badge" hidden></span></button>
@@ -90,6 +91,9 @@
             <input id="tagAmiInput" maxlength="17" placeholder="Nom#1234">
             <button type="button" id="tagAmiAjouter">Ajouter</button>
           </div>
+        </div>
+        <div class="sidebar-section">
+          <a href="https://discord.gg/U4U2xW3KnD" target="_blank" rel="noopener noreferrer" class="discord-btn">💬 Discord</a>
         </div>
       </div>
     </div>
@@ -141,6 +145,10 @@
 
       <div class="panel" id="drawerInfoPanel">
         <p class="drawer-info-ligne">Vitesse : <strong id="ipsValue">...</strong> i/s <span class="drawer-info-sub">(GBA 59,7)</span></p>
+      </div>
+
+      <div class="panel" id="drawerDiscordPanel">
+        <a href="https://discord.gg/U4U2xW3KnD" target="_blank" rel="noopener noreferrer" class="discord-btn">💬 Discord</a>
       </div>
 
 
@@ -353,7 +361,7 @@
 <script src="assets/js/state.js?v=20260614d"></script>
 <script src="assets/js/audio.js?v=20260614o"></script>
 <script src="assets/js/emulator.js?v=20260614p"></script>
-<script src="assets/js/emulator-iodine.js?v=20260625h"></script>
+<script src="assets/js/emulator-iodine.js?v=20260625i"></script>
 <script src="assets/js/position.js?v=20260625d"></script>
 <script src="assets/js/raccourcis.js?v=20260614d"></script>
 <script src="assets/js/tchat.js?v=20260618d"></script>
@@ -368,7 +376,7 @@
 <script src="assets/js/overlay.js?v=20260614m"></script>
 <script src="assets/js/debug.js?v=20260617a"></script>
 <script src="assets/js/roms.js?v=20260614q"></script>
-<script src="assets/js/app.js?v=20260621a"></script>
+<script src="assets/js/app.js?v=20260625b"></script>
 <script src="assets/js/touch-controls.js?v=20260625j"></script>
 <script src="assets/js/fullscreen.js?v=20260625i"></script>
 </body>
