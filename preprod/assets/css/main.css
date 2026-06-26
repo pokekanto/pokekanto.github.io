@@ -1023,3 +1023,6 @@ body.is-playing #legendeZone {
 /* ---------- Bouton "Supprimer ma partie" (danger) ---------- */
 .cloud-danger { display:block; width:100%; margin-top:12px; background:var(--rouge); color:#fff; border:none; border-radius:9px; padding:10px; font-weight:700; font-size:.84rem; cursor:pointer; box-shadow:0 2px 0 #7e1300; }
 .cloud-danger:active { transform:translateY(2px); box-shadow:0 0 0 #7e1300; }
+.discord-btn { display:block; width:100%; box-sizing:border-box; margin-top:12px; text-align:center; text-decoration:none; background:#5865F2; color:#fff; border:none; border-radius:9px; padding:10px; font-weight:700; font-size:.84rem; cursor:pointer; box-shadow:0 2px 0 #3c45a5; }
+.discord-btn:hover { background:#4752c4; }
+.discord-btn:active { transform:translateY(2px); box-shadow:0 0 0 #3c45a5; }
