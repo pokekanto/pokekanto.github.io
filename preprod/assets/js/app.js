@@ -106,6 +106,9 @@
   const drawerSoundBtn = $("drawerSoundBtn");
   if (drawerSoundBtn) drawerSoundBtn.addEventListener("click", emulator.toggleSound);
 
+  const hudSoundBtn = $("hudSoundBtn");
+  if (hudSoundBtn) hudSoundBtn.addEventListener("click", emulator.toggleSound);
+
   const drawerImportBtn = $("drawerImportBtn");
   if (drawerImportBtn) drawerImportBtn.addEventListener("click", () => $("playSavInput").click());
 
