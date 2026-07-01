@@ -43,13 +43,14 @@ Priorite actuelle : ameliorer l'experience multijoueur sans heberger ni distribu
 - `assets/js/position.js` : lecture de position et genre en RAM GBA.
 - `assets/js/raccourcis.js` : panneau de personnalisation des touches clavier.
 - `assets/js/tchat.js` : tchat general et amis via Firebase.
-- `assets/js/network.js` : connexion au monde partage Firebase, envoi de position.
+- `assets/js/network.js` : connexion au monde partage Firebase, envoi de position. PRESENCE DECOUPEE PAR CARTE ET PAR LAYER (cle composite + requete de plage, eco) ; 3 layers de 200 joueurs max + file d'attente.
 - `assets/js/siolink.js` : emulation cable link GBA via WebRTC + signaling Firebase.
 - `assets/js/linkroom.js` : lobby Cable Club (combat / echange avec un ami).
 - `assets/js/cloudsave.js` : sauvegarde .sav compressee dans le cloud (Firebase) + code de recuperation (VALD-XXXX).
 - `assets/js/echange.js` : echange de Pokemon — lit/ecrit la RAM GBA, transport Firebase (boite aux lettres async + echange en direct atomique).
 - `assets/js/combat.js` : donnees de combat lues dans la ROM (stats, attaques, types, noms FR, sprites) + decodage de l'equipe du joueur.
-- `assets/js/combat-ui.js` : ecran de combat local (vs IA) et EN LIGNE — client Showdown anime (replay-embed dans une iframe) + moteur @pkmn/sim (mecaniques) + matchmaking aleatoire / defi ami via Firebase. Boutons + journal en francais.
+- `assets/js/combat-ui.js` : ecran de combat local (vs IA) et EN LIGNE — client Showdown anime (replay-embed dans une iframe) + moteur @pkmn/sim (mecaniques) + matchmaking aleatoire / defi ami via Firebase. Boutons + journal en francais. Combat 6v6 complet (equipe entiere + changements + KO). Alimente le classement Elo apres un combat aleatoire.
+- `assets/js/ladder.js` : classement Elo saisonnier des combats aleatoires (top 20, PC, bas a droite). Reset auto tous les 6 mois via la cle de saison. Stocke monde/ladder/<saison>.
 - `assets/js/sprites.js` : rendu du sprite du joueur distant (homme10.png / fille8.png).
 - `assets/js/overlay.js` : boucle d'affichage des joueurs distants sur le canvas overlay.
 - `assets/js/debug.js` : panneau debug (position, joueurs en ligne).
@@ -62,7 +63,7 @@ Priorite actuelle : ameliorer l'experience multijoueur sans heberger ni distribu
 
 Ordre de chargement dans index.html : dom → state → audio → emulator → emulator-iodine →
 position → raccourcis → tchat → network → siolink → linkroom → cloudsave → echange →
-combat → combat-ui → sprites → overlay → debug → roms → app → touch-controls → fullscreen.
+combat → ladder → combat-ui → sprites → overlay → debug → roms → app → touch-controls → fullscreen.
 
 ## Regles ROM et legal
 
@@ -167,5 +168,10 @@ Pour le combat (local et en ligne) :
 - COMBAT : ne passe PAS par l'emulation du cable. Systeme maison = on LIT l'equipe dans la RAM, le moteur @pkmn/sim (Showdown) calcule le combat (mecaniques Gen 3 exactes), et le client Showdown (replay-embed.js dans une iframe isolee) l'affiche anime. EN LIGNE = Firebase hote-autorite : l'hote fait tourner le sim et pousse le log, l'invite envoie ses coups. Matchmaking aleatoire (file d'attente FIFO, ticket numerote) + defi ami (notif via monde/echanges). Chemins Firebase ouverts utilises : monde/sessions/* et monde/echanges/*.
 - ECHANGE : meme principe (lit/ecrit la RAM + transport Firebase), pas le cable.
 - Le cable link reel (siolink.js / linkroom.js, Cable Club) reste dispo mais n'est pas la voie du combat principal (mur de la synchro temps reel).
+- PRESENCE ECO : chaque joueur n'ecrit/ne telecharge QUE les joueurs de sa carte (cle composite dans monde/joueurs + requete de plage), pas le monde entier -> tient ~1000 joueurs sous 10 Go/mois. Bande passante Firebase = quota mensuel (reset chaque mois) ; stockage auto-nettoye (onDisconnect).
+- LAYERS (facon WoW) : 3 layers de 200 joueurs max, placement auto, menu deroulant (Reglages PC / menu mobile), changement fluide sans redemarrage, file d'attente FIFO au-dela de 600. Le layer prefixe la cle de presence.
+- CLASSEMENT (ladder.js) : Elo (depart 1000, K=32) des combats ALEATOIRES uniquement, top 20 en bas a droite (PC). Saisonnier : reset auto tous les 6 mois via la cle de saison. Stocke monde/ladder/<saison>/<tag> (necessite une regle Firebase dediee, indexOn elo).
+- REGLES FIREBASE : strictes et par-chemin (structure PLATE imposee ; nouveaux noeuds top-level refuses par defaut). Un vrai nouveau noeud (ex : ladder) demande une regle cote console Firebase ; sinon encoder l'info dans une cle composite sous un chemin deja ouvert (monde/joueurs).
+- VOLUME par defaut a 20% ; bouton Discord dans les Reglages (PC + mobile) ; sur mobile : curseur volume + boutons HUD (Amis / Echange / Combat) compacts ; legende "?" masquee sur PC.
 - Le projet doit rester compatible GitHub Pages.
 - Toute dependance externe doit etre justifiee dans la PR.
