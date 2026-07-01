@@ -198,6 +198,21 @@
     try { window.location.reload(); } catch (e) {}
   }
 
+  // Suppression pour bannissement : efface cloud + local, SANS confirmation ni reload.
+  async function supprimePourBan() {
+    enSuppression = true;
+    if (timer) { clearInterval(timer); timer = null; }
+    var code = getCode();
+    if (db) {
+      try { await db.ref(BASE + cleFB(code)).set(""); } catch (e) {}
+      try { await db.ref(BASE + cleFB(code)).remove(); } catch (e) {}
+    }
+    try { if (V.emulator && V.emulator.deleteSave) V.emulator.deleteSave(); } catch (e) {}
+    try { window.localStorage.removeItem(CLE_HASH); } catch (e) {}
+    try { window.localStorage.removeItem(CLE_CODE); } catch (e) {}
+    monCode = null;
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     majUI();
     var up1 = $("cloudSaveBtn"); if (up1) up1.addEventListener("click", envoieManuel);
@@ -208,5 +223,5 @@
     var del2 = $("drawerCloudDeleteBtn"); if (del2) del2.addEventListener("click", supprimerPartie);
   });
 
-  V.cloudsave = { connectDb: connectDb, getCode: getCode, restaurer: restaurer, envoie: envoie, envoieManuel: envoieManuel, supprimerPartie: supprimerPartie };
+  V.cloudsave = { connectDb: connectDb, getCode: getCode, restaurer: restaurer, envoie: envoie, envoieManuel: envoieManuel, supprimerPartie: supprimerPartie, supprimePourBan: supprimePourBan };
 })(window);

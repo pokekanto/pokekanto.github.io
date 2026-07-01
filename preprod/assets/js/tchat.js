@@ -350,9 +350,10 @@
       const texte0 = champ.value.trim().slice(0, 120);
       if (!monTag || !texte0) return;
       const bloc = _spamBloque();
-      if (bloc) { _avertit(bloc === "vite" ? "Doucement, attends une seconde." : "Tu envoies trop vite, patiente un peu."); return; }
-      if (texte0 === _dernierTexte) { _avertit("Tu as deja envoye ce message."); champ.value = ""; return; }
+      if (bloc) { _avertit(bloc === "vite" ? "Doucement, attends une seconde." : "Tu envoies trop vite, patiente un peu."); if (window.Valdoria.moderation) window.Valdoria.moderation.signale("spam"); return; }
+      if (texte0 === _dernierTexte) { _avertit("Tu as deja envoye ce message."); if (window.Valdoria.moderation) window.Valdoria.moderation.signale("spam"); champ.value = ""; return; }
       const texte = censure(texte0);
+      if (texte !== texte0 && window.Valdoria.moderation) window.Valdoria.moderation.signale("insulte");
       if (!texte.replace(/[*\s]/g, "")) { champ.value = ""; return; }
       _dernierTexte = texte0; _envois.push(Date.now()); dernierEnvoi = Date.now();
       const ref = canal === "general"
