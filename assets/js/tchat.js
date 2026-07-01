@@ -61,6 +61,38 @@
       el.addEventListener(t, e => e.stopPropagation()));
   }
 
+  // ---- Moderation tchat : anti-insulte (censure ***) + anti-spam (debit + doublons) ----
+  var _envois = [], _dernierTexte = "";
+  var _ROOTS = ["encul","connard","connass","salop","enfoir","batard","putain","tapette","pedale","gouine","tarlouze","fuck","shit","bitch","asshol","bastard","nigg","faggot","motherf","niqu","negr","bougnoul","pouffias"];
+  var _EXACT = new Set(["con","cons","conne","connes","pd","pds","pede","pute","putes","tg","fdp","ntm","salaud","salauds","abruti","abrutie","debile","debiles","cretin","cretine","mongol","mongols","trisomique","fag","fags","cunt","slut","whore","youpin","bicot"]);
+  function _norm(x){ return ("" + x).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+  function _interdit(brut){
+    if (!brut) return false;
+    if (_EXACT.has(brut)) return true;
+    for (var i = 0; i < _ROOTS.length; i++) if (brut.indexOf(_ROOTS[i]) === 0) return true;
+    return false;
+  }
+  function censure(texte){
+    return ("" + texte).split(/(\s+)/).map(function (tok){
+      if (!tok || /^\s+$/.test(tok)) return tok;
+      var brut = _norm(tok).replace(/[^a-z0-9]/g, "");
+      return _interdit(brut) ? "***" : tok;
+    }).join("");
+  }
+  function _spamBloque(){
+    var now = Date.now();
+    _envois = _envois.filter(function (t){ return now - t < 10000; });
+    if (_envois.length >= 5) return "trop";
+    if (_envois.length && now - _envois[_envois.length - 1] < 1200) return "vite";
+    return null;
+  }
+  function _avertit(msg){
+    var boite = $("tchatMessages"); if (!boite) return;
+    var p = ligneInfo("⚠️ " + msg);
+    boite.appendChild(p); boite.scrollTop = boite.scrollHeight;
+    setTimeout(function (){ try { p.remove(); } catch (e) {} }, 3000);
+  }
+
   function ligneMessage(d) {
     const ligne = document.createElement("div");
     ligne.className = "tchat-ligne";
@@ -70,7 +102,7 @@
     if (d.tag && (d.tag === monTag || amis.includes(d.tag))) qui.classList.add("ami");
     if (d.tag) qui.title = d.tag;
     ligne.appendChild(qui);
-    ligne.appendChild(document.createTextNode(d.texte));
+    ligne.appendChild(document.createTextNode(censure(d.texte)));
     return ligne;
   }
 
@@ -315,10 +347,15 @@
     $("tchatForm").addEventListener("submit", e => {
       e.preventDefault();
       const champ = $("tchatInput");
-      const texte = champ.value.trim().slice(0, 120);
-      const now = Date.now();
-      if (!monTag) return;
-      dernierEnvoi = now;
+      const texte0 = champ.value.trim().slice(0, 120);
+      if (!monTag || !texte0) return;
+      const bloc = _spamBloque();
+      if (bloc) { _avertit(bloc === "vite" ? "Doucement, attends une seconde." : "Tu envoies trop vite, patiente un peu."); if (window.Valdoria.moderation) window.Valdoria.moderation.signale("spam"); return; }
+      if (texte0 === _dernierTexte) { _avertit("Tu as deja envoye ce message."); if (window.Valdoria.moderation) window.Valdoria.moderation.signale("spam"); champ.value = ""; return; }
+      const texte = censure(texte0);
+      if (texte !== texte0 && window.Valdoria.moderation) window.Valdoria.moderation.signale("insulte");
+      if (!texte.replace(/[*\s]/g, "")) { champ.value = ""; return; }
+      _dernierTexte = texte0; _envois.push(Date.now()); dernierEnvoi = Date.now();
       const ref = canal === "general"
         ? db.ref("monde/tchat")
         : db.ref("monde/tchatAmis/" + cle(monTag));
