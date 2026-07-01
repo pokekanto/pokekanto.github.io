@@ -238,6 +238,9 @@
   function finOnline(res) {
     etat.fini = true; etat.attente = true; renderMoves();
     setStatus(res === "win" ? "🏆 Victoire !" : res === "lose" ? "💀 Défaite…" : "Match nul.");
+    if (etat.ranked && (res === "win" || res === "lose") && window.Valdoria.ladder) {
+      try { window.Valdoria.ladder.enregistreResultat(etat.advTag, res === "win"); } catch (e) {}
+    }
     if (etat.role === "hote" && etat.ref) setTimeout(function () { try { etat.ref.remove(); } catch (e) {} }, 2500);
   }
 
@@ -258,9 +261,9 @@
   }
 
   // ---------- ONLINE : HÔTE ----------
-  function hostRoom(code, mine) {
+  function hostRoom(code, mine, ranked) {
     var db = DB(); var ref = db.ref(sess(code));
-    etat = { mode: "hote", role: "hote", ref: ref, code: code, mySet: mine.set, p1name: monTag() || "Toi", started: false, fini: false, attente: true, tour: 1, choixInvite: null, monChoix: null };
+    etat = { mode: "hote", role: "hote", ref: ref, code: code, mySet: mine.set, p1name: monTag() || "Toi", ranked: !!ranked, advTag: null, started: false, fini: false, attente: true, tour: 1, choixInvite: null, monChoix: null };
     ref.set({ hote: monTag() || "Toi", etat: "attente", eqHote: mine.set, t: TS() });
     try { ref.onDisconnect().remove(); } catch (e) {}
     ref.on("value", onHostRoom);
@@ -273,7 +276,7 @@
       etat.started = true;
       stopAttente();
       var advSet = arr(typeof r.eqInvite === "string" ? JSON.parse(r.eqInvite) : r.eqInvite);
-      var advName = r.invite || "Adversaire";
+      var advName = r.invite || "Adversaire"; etat.advTag = r.invite || null;
       var b = new sim.Battle({ formatid: "gen3customgame", p1: { name: etat.p1name, team: arr(etat.mySet) }, p2: { name: advName, team: advSet } });
       etat.sim = b; etat.rawIdx = b.log.length;
       try { etat.ref.update({ etat: "jeu", log: omniscient(b.log).join("\n"), reqInvite: reqPayload(b.sides[1]), tour: 1 }); } catch (e) {}
@@ -308,12 +311,12 @@
   }
 
   // ---------- ONLINE : INVITÉ ----------
-  async function joinGuest(code, hoteTag) {
+  async function joinGuest(code, hoteTag, ranked) {
     var db = DB(); if (!db) { window.alert("Connecte-toi au monde (lance le jeu)."); return; }
     var mine = await prepareMonSet(); if (!mine) return;
     var ref = db.ref(sess(code));
     var s = await ref.once("value"); if (!s.val()) { window.alert("Combat introuvable (expiré ?)."); onlineHide(); return; }
-    etat = { mode: "invite", role: "invite", ref: ref, code: code, logSeen: 0, areneShown: false, fini: false, attente: true, reqInvite: null };
+    etat = { mode: "invite", role: "invite", ref: ref, code: code, ranked: !!ranked, advTag: hoteTag || null, logSeen: 0, areneShown: false, fini: false, attente: true, reqInvite: null };
     try { ref.update({ invite: monTag() || "Invité", eqInvite: mine.set }); } catch (e) {}
     ref.on("value", onGuestRoom);
   }
@@ -382,10 +385,10 @@
     if (oldest) {
       try { await fileRef.child(oldest.key).remove(); } catch (e) {}
       try { db.ref("monde/sessions/cbt__stats").push({ w: Math.max(1, Math.round((now - oldest.t) / 1000)), t: TS() }); } catch (e) {}
-      joinGuest(oldest.code, oldest.tag); return;
+      joinGuest(oldest.code, oldest.tag, true); return;
     }
     var code = genCode();
-    hostRoom(code, mine);
+    hostRoom(code, mine, true);
     var myEntry = fileRef.push({ tag: monTag() || "Toi", id: myId, code: code, t: TS() });
     try { myEntry.onDisconnect().remove(); } catch (e) {}
     if (etat) { etat.fileEntryRef = myEntry; etat.fileRef = fileRef; etat.attenteDepuis = Date.now(); etat.position = 1; etat.nbAttente = 1; etat.estim = await estimAttente(); fileRef.on("value", onAttenteFile); etat.attenteTimer = setInterval(renderAttente, 1000); setTimeout(renderAttente, 80); }
@@ -399,7 +402,7 @@
     if (!monTag()) { window.alert("Ton tag n'est pas prêt (avance un peu en jeu)."); return; }
     var mine = await prepareMonSet(); if (!mine) return;
     var code = genCode();
-    hostRoom(code, mine);
+    hostRoom(code, mine, false);
     try { db.ref("monde/echanges/" + cle(tag)).push({ de: monTag(), combat: code, t: TS() }); } catch (e) {}
     onlineShow("wait", "⏳ En attente que " + tag + " accepte ton défi…");
   }
@@ -440,7 +443,7 @@
     });
   }
   function showChallenge() { if (!pending) return; ouvrir(); onlineShow("challenge", "⚔️ " + pending.de + " te défie en combat !"); }
-  function accepterDefi() { hideToast(); if (!pending) return; var c = pending; if (c.ref) try { c.ref.remove(); } catch (e) {} pending = null; majBadge(); var p = $("combatPanel"); if (p) p.removeAttribute("hidden"); joinGuest(c.code, c.de); }
+  function accepterDefi() { hideToast(); if (!pending) return; var c = pending; if (c.ref) try { c.ref.remove(); } catch (e) {} pending = null; majBadge(); var p = $("combatPanel"); if (p) p.removeAttribute("hidden"); joinGuest(c.code, c.de, false); }
   function refuserDefi() { hideToast(); if (pending && pending.ref) try { pending.ref.remove(); } catch (e) {} pending = null; majBadge(); onlineHide(); }
 
   // ---------- UI lobby online (injectée) ----------
