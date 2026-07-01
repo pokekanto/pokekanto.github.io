@@ -125,10 +125,8 @@
         boite.appendChild(ligneInfo("Donne ton tag " + monTag + " à tes amis et ajoute les leurs ci-dessus : l'ajout mutuel ouvre la conversation."));
       for (const d of historiques.amis) boite.appendChild(ligneMessage(d));
     } else {
-      // Général : messages publics + messages amis mélangés, triés par temps
-      const tous = [...historiques.general, ...historiques.amis]
-        .sort((a, b) => (a.t || 0) - (b.t || 0));
-      for (const d of tous) boite.appendChild(ligneMessage(d));
+      // Général : messages PUBLICS uniquement — le canal Amis reste strictement séparé.
+      for (const d of historiques.general) boite.appendChild(ligneMessage(d));
     }
     boite.scrollTop = boite.scrollHeight;
   }
