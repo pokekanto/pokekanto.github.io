@@ -1,17 +1,14 @@
 (function (window) {
   "use strict";
 
-  // Monde partage via Firebase Realtime Database.
-  // ECO (2026) : la presence est DECOUPEE PAR CARTE ("sharding"). Les regles
-  // Firebase imposent une structure PLATE sous monde/joueurs, donc on encode la
-  // carte dans la CLE : monde/joueurs/"<g_m>|<id>". Chacun ne s'abonne qu'aux
-  // cles de SA carte via une requete de plage
-  // orderByKey().startAt("<g_m>|").endAt("<g_m>|"). Resultat : on ne
-  // telecharge QUE les joueurs de sa carte (ceux qu'on affiche vraiment), au
-  // lieu du monde entier -> economie d'environ 100x en bande passante. Le
-  // payload reste identique (les regles valident nom/x/y/g/m/sexe/t).
-  // onDisconnect() retire le joueur qui ferme l'onglet ; on ignore aussi les
-  // entrees trop vieilles au cas ou ce nettoyage n'aurait pas pu tourner.
+  // Monde partage via Firebase RTDB - ECO + LAYERS (facon WoW).
+  // Presence DECOUPEE PAR CARTE *et* PAR LAYER : cle plate imposee par les regles
+  //   monde/joueurs/"L<layer>_<g>_<m>|<id>". Chacun ne s'abonne qu'a
+  //   "L<layer>_<g>_<m>|" -> ne voit que les joueurs de SON layer ET de sa carte.
+  // 3 layers, 200 max chacun ; au-dela = file d'attente (entrees "Q|<id>").
+  // Comptage a la demande via requetes de plage (pas en continu -> reste eco) ;
+  // on lit snap.val() + Object (le snap.forEach du SDK peut sauter des entrees).
+  // Changer de layer = simple re-abonnement -> AUCUN redemarrage du jeu.
 
   const { $, setStatus } = window.Valdoria.dom;
   const state = window.Valdoria.state;
@@ -22,21 +19,25 @@
     databaseURL: "https://pokekanto-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "pokekanto"
   };
-  const VIEUX_MS = 70000;     // au-dela : joueur considere deconnecte
-  const ENVOI_MIN_MS = 250;   // eco : au plus une ecriture toutes les 250 ms (etait 150)
-  const FIN = "";       // sentinelle de fin de prefixe (requete de plage)
+  const VIEUX_MS = 70000;
+  const ENVOI_MIN_MS = 250;
+  const FIN = String.fromCharCode(0xF8FF);   // sentinelle de fin de prefixe (requetes de plage)
+  const LAYER_MAX = 200;
+  const NB_LAYERS = 3;
 
   let db = null;
   let monId = null;
-  let zoneActuelle = null;    // "<g_m>" de la carte courante
-  let monKey = null;          // "<zone>|<id>"
-  let monRef = null;          // ref d'ecriture (cle composite)
-  let zoneQuery = null;       // requete d'abonnement (plage de la zone)
+  let monLayer = null;        // 1..3, ou null (pas encore place / en file)
+  let zoneActuelle = null;
+  let monKey = null;
+  let monRef = null;
+  let zoneQuery = null;
   let dernierEnvoi = 0;
   let dernierePos = null;
+  let enFile = false;
+  let fileRef = null;
+  let filePoll = null;
 
-  // Le nom lu dans la partie fait foi ; le champ libre ne sert que tant que la
-  // partie n'a pas encore livre son nom (menu titre, intro).
   function pseudo() {
     if (state.myPos && state.myPos.nom) return state.myPos.nom;
     const saisi = $("playerName").value.trim().slice(0, 16);
@@ -80,13 +81,14 @@
   }
 
   function majStatut() {
+    if (enFile) return;
     const n = Object.keys(state.joueurs).length;
+    const suf = monLayer ? " (Layer " + monLayer + ")" : "";
     setStatus(n === 0
-      ? "🌍 Connecte au monde - personne d'autre sur ta carte."
-      : "🌍 Connecte au monde - " + n + " autre" + (n > 1 ? "s" : "") + " sur ta carte.");
+      ? "🌍 Connecte au monde" + suf + " - personne d'autre sur ta carte."
+      : "🌍 Connecte au monde" + suf + " - " + n + " autre" + (n > 1 ? "s" : "") + " sur ta carte.");
   }
 
-  // Quitter la zone courante : retrait immediat + desabonnement + oubli des voisins.
   function quitteZone() {
     if (monRef) {
       try { monRef.onDisconnect().cancel(); } catch (e) {}
@@ -97,18 +99,134 @@
     for (const k of Object.keys(state.joueurs)) delete state.joueurs[k];
   }
 
-  // Rejoindre une zone (carte) : abonnement aux SEULS joueurs de cette carte.
   function entreZone(zk) {
     zoneActuelle = zk;
     monKey = zk + "|" + monId;
     monRef = db.ref("monde/joueurs/" + monKey);
     monRef.onDisconnect().remove();
     zoneQuery = db.ref("monde/joueurs").orderByKey().startAt(zk + "|").endAt(zk + "|" + FIN);
-    zoneQuery.on("child_added", s => { if (s.key !== monKey) { majJoueur(s.key, s.val()); majStatut(); } });
-    zoneQuery.on("child_changed", s => { if (s.key !== monKey) majJoueur(s.key, s.val()); });
-    zoneQuery.on("child_removed", s => { delete state.joueurs[s.key]; majStatut(); });
-    dernierEnvoi = 0; dernierePos = null;   // forcer une 1re ecriture dans la nouvelle zone
+    zoneQuery.on("child_added", function (s) { if (s.key !== monKey) { majJoueur(s.key, s.val()); majStatut(); } });
+    zoneQuery.on("child_changed", function (s) { if (s.key !== monKey) majJoueur(s.key, s.val()); });
+    zoneQuery.on("child_removed", function (s) { delete state.joueurs[s.key]; majStatut(); });
+    dernierEnvoi = 0; dernierePos = null;
     majStatut();
+  }
+
+  // ---------- LAYERS ----------
+  function prefLayer(L) { return "L" + L + "_"; }
+  function compteLayer(L) {
+    return db.ref("monde/joueurs").orderByKey().startAt(prefLayer(L)).endAt(prefLayer(L) + FIN).once("value").then(function (snap) {
+      const val = snap.val() || {}; const limite = Date.now() - VIEUX_MS; let n = 0;
+      for (const k in val) { const v = val[k]; if (v && (v.t || 0) > limite) n++; }
+      return n;
+    }).catch(function () { return 0; });
+  }
+
+  function placerAuto() {
+    let pref = parseInt(window.localStorage.getItem("valdoria.layer"), 10);
+    if (!(pref >= 1 && pref <= NB_LAYERS)) pref = 0;
+    const ordre = [];
+    if (pref) ordre.push(pref);
+    for (let L = 1; L <= NB_LAYERS; L++) if (L !== pref) ordre.push(L);
+    (function suivant(i) {
+      if (i >= ordre.length) { entrerFile(); return; }
+      compteLayer(ordre[i]).then(function (n) {
+        if (n < LAYER_MAX) {
+          monLayer = ordre[i]; enFile = false; zoneActuelle = null;
+          majStatut(); majLayerUI();
+          if (state.myPos) sendPos(state.myPos);
+        } else suivant(i + 1);
+      });
+    })(0);
+  }
+
+  function changeLayer(L) {
+    L = parseInt(L, 10);
+    if (!(L >= 1 && L <= NB_LAYERS) || L === monLayer) return;
+    compteLayer(L).then(function (n) {
+      if (n >= LAYER_MAX) { majLayerUI(); return; }
+      quitterFile();
+      monLayer = L; enFile = false;
+      try { window.localStorage.setItem("valdoria.layer", String(L)); } catch (e) {}
+      quitteZone(); zoneActuelle = null;
+      if (state.myPos) sendPos(state.myPos);
+      majStatut(); majLayerUI();
+    });
+  }
+
+  // ---------- FILE D'ATTENTE ----------
+  function entrerFile() {
+    enFile = true; monLayer = null;
+    quitteZone();
+    fileRef = db.ref("monde/joueurs/Q|" + monId);
+    fileRef.set({ nom: pseudo(), tag: null, x: 0, y: 0, g: 999, m: 999, sexe: null, t: firebase.database.ServerValue.TIMESTAMP });
+    try { fileRef.onDisconnect().remove(); } catch (e) {}
+    setStatus("⏳ File d'attente : les 3 layers sont pleins. Tu peux jouer, tu rejoindras des qu'une place se libere.");
+    majLayerUI();
+    if (!filePoll) filePoll = setInterval(essayeSortirFile, 8000);
+    essayeSortirFile();
+  }
+  function quitterFile() {
+    if (!enFile && !fileRef) return;
+    enFile = false;
+    if (filePoll) { clearInterval(filePoll); filePoll = null; }
+    if (fileRef) { try { fileRef.onDisconnect().cancel(); } catch (e) {} try { fileRef.remove(); } catch (e) {} fileRef = null; }
+  }
+  function essayeSortirFile() {
+    if (!enFile) return;
+    db.ref("monde/joueurs").orderByKey().startAt("Q|").endAt("Q|" + FIN).once("value").then(function (snap) {
+      if (!enFile) return;
+      const val = snap.val() || {}; const limite = Date.now() - VIEUX_MS; const maCle = "Q|" + monId;
+      const maT = (val[maCle] && val[maCle].t) || Infinity;
+      let minKey = null, minT = Infinity, devant = 0;
+      for (const k in val) {
+        const v = val[k]; if (!v) continue; const t = v.t || 0; const moi = (k === maCle);
+        if (!moi && t <= limite) continue;
+        if (t < minT) { minT = t; minKey = k; }
+        if (!moi && t < maT) devant++;
+      }
+      setStatus("⏳ File d'attente : position " + (devant + 1) + " - tu peux jouer, tu rejoindras des qu'une place se libere.");
+      if (minKey !== maCle) return;
+      (function cherche(L) {
+        if (L > NB_LAYERS) return;
+        compteLayer(L).then(function (n) { if (!enFile) return; if (n < LAYER_MAX) sortirFile(L); else cherche(L + 1); });
+      })(1);
+    }).catch(function () {});
+  }
+  function sortirFile(L) {
+    quitterFile();
+    monLayer = L; zoneActuelle = null;
+    try { window.localStorage.setItem("valdoria.layer", String(L)); } catch (e) {}
+    setStatus("✅ Une place s'est liberee - tu rejoins le Layer " + L + " !");
+    majLayerUI();
+    if (state.myPos) sendPos(state.myPos);
+  }
+
+  // ---------- MENU DEROULANT LAYER ----------
+  function majLayerUI() {
+    const selects = [$("layerSelect"), $("drawerLayerSelect")].filter(Boolean);
+    if (!selects.length || !db) return;
+    Promise.all([compteLayer(1), compteLayer(2), compteLayer(3)]).then(function (cs) {
+      const counts = { 1: cs[0], 2: cs[1], 3: cs[2] };
+      selects.forEach(function (sel) {
+        sel.innerHTML = "";
+        for (let L = 1; L <= NB_LAYERS; L++) {
+          const plein = counts[L] >= LAYER_MAX;
+          const o = document.createElement("option");
+          o.value = String(L);
+          o.textContent = plein ? "🔴 (Layer " + L + ") complet" : "🟢 Layer " + L + " (" + counts[L] + "/" + LAYER_MAX + ")";
+          o.style.color = plein ? "#c0392b" : "#1d7a3c";
+          if (plein && L !== monLayer) o.disabled = true;
+          if (L === monLayer) o.selected = true;
+          sel.appendChild(o);
+        }
+        if (enFile) {
+          const o = document.createElement("option");
+          o.value = ""; o.textContent = "⏳ File d'attente"; o.selected = true; o.disabled = true;
+          sel.appendChild(o);
+        }
+      });
+    });
   }
 
   function connectWorld() {
@@ -128,30 +246,37 @@
     if (window.Valdoria.cloudsave) window.Valdoria.cloudsave.connectDb(db);
     if (window.Valdoria.echange) window.Valdoria.echange.connectDb(db);
 
-    db.ref(".info/connected").on("value", s => {
+    db.ref(".info/connected").on("value", function (s) {
       if (s.val()) majStatut();
       else setStatus("Connexion au monde perdue, reconnexion...");
     });
 
-    // purge des voisins fantomes (onglet tue sans onDisconnect) sur la zone courante
-    setInterval(() => {
+    setInterval(function () {
       const limite = Date.now() - VIEUX_MS;
       for (const k of Object.keys(state.joueurs))
         if (state.joueurs[k].t < limite) { delete state.joueurs[k]; majStatut(); }
     }, 10000);
 
-    $("playerName").addEventListener("change", () => {
+    [$("layerSelect"), $("drawerLayerSelect")].forEach(function (sel) {
+      if (!sel) return;
+      sel.addEventListener("mousedown", majLayerUI);
+      sel.addEventListener("focus", majLayerUI);
+      sel.addEventListener("change", function () { if (sel.value) changeLayer(sel.value); });
+    });
+
+    $("playerName").addEventListener("change", function () {
       try { window.localStorage.setItem("valdoria.pseudo", $("playerName").value.trim()); } catch (e) {}
       if (state.myPos) { dernierePos = null; sendPos(state.myPos); }
     });
+
+    placerAuto();
   }
 
-  // Appele en continu par app.js : bascule de zone si on a change de carte, puis
-  // n'ecrit que si quelque chose a change (+ un battement toutes les 30 s).
   function sendPos(pos) {
     if (!db || !monId || !pos) return;
+    if (monLayer === null) return;
     if (typeof pos.g !== "number" || typeof pos.m !== "number") return;
-    const zk = pos.g + "_" + pos.m;
+    const zk = "L" + monLayer + "_" + pos.g + "_" + pos.m;
     if (zk !== zoneActuelle) { quitteZone(); entreZone(zk); }
     if (!monRef) return;
     const now = Date.now();
@@ -172,5 +297,5 @@
     });
   }
 
-  window.Valdoria.network = { connectWorld, sendPos };
+  window.Valdoria.network = { connectWorld: connectWorld, sendPos: sendPos, changeLayer: changeLayer };
 })(window);
