@@ -1,12 +1,17 @@
 (function (window) {
   "use strict";
 
-  // Monde partagé : tous les visiteurs du site se retrouvent dans le même
-  // monde via Firebase Realtime Database (gratuit, clés publiques par
-  // conception). Chaque joueur écrit sa position dans monde/joueurs/<id>
-  // et écoute celles des autres. onDisconnect() retire automatiquement un
-  // joueur qui ferme l'onglet ; on ignore aussi les entrées trop vieilles
-  // au cas où ce nettoyage n'aurait pas pu s'exécuter.
+  // Monde partage via Firebase Realtime Database.
+  // ECO (2026) : la presence est DECOUPEE PAR CARTE ("sharding"). Les regles
+  // Firebase imposent une structure PLATE sous monde/joueurs, donc on encode la
+  // carte dans la CLE : monde/joueurs/"<g_m>|<id>". Chacun ne s'abonne qu'aux
+  // cles de SA carte via une requete de plage
+  // orderByKey().startAt("<g_m>|").endAt("<g_m>|"). Resultat : on ne
+  // telecharge QUE les joueurs de sa carte (ceux qu'on affiche vraiment), au
+  // lieu du monde entier -> economie d'environ 100x en bande passante. Le
+  // payload reste identique (les regles valident nom/x/y/g/m/sexe/t).
+  // onDisconnect() retire le joueur qui ferme l'onglet ; on ignore aussi les
+  // entrees trop vieilles au cas ou ce nettoyage n'aurait pas pu tourner.
 
   const { $, setStatus } = window.Valdoria.dom;
   const state = window.Valdoria.state;
@@ -17,16 +22,21 @@
     databaseURL: "https://pokekanto-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "pokekanto"
   };
-  const VIEUX_MS = 70000;     // au-delà : joueur considéré déconnecté
-  const ENVOI_MIN_MS = 150;   // pas plus d'une écriture toutes les 150 ms
+  const VIEUX_MS = 70000;     // au-dela : joueur considere deconnecte
+  const ENVOI_MIN_MS = 250;   // eco : au plus une ecriture toutes les 250 ms (etait 150)
+  const FIN = "";       // sentinelle de fin de prefixe (requete de plage)
 
-  let monRef = null;
+  let db = null;
   let monId = null;
+  let zoneActuelle = null;    // "<g_m>" de la carte courante
+  let monKey = null;          // "<zone>|<id>"
+  let monRef = null;          // ref d'ecriture (cle composite)
+  let zoneQuery = null;       // requete d'abonnement (plage de la zone)
   let dernierEnvoi = 0;
   let dernierePos = null;
 
-  // Le nom lu dans la partie fait foi ; le champ libre ne sert que tant
-  // que la partie n'a pas encore livré son nom (menu titre, intro).
+  // Le nom lu dans la partie fait foi ; le champ libre ne sert que tant que la
+  // partie n'a pas encore livre son nom (menu titre, intro).
   function pseudo() {
     if (state.myPos && state.myPos.nom) return state.myPos.nom;
     const saisi = $("playerName").value.trim().slice(0, 16);
@@ -39,7 +49,7 @@
     if (champ.disabled && champ.value === nom) return;
     champ.value = nom;
     champ.disabled = true;
-    champ.title = "Nom de ta partie — non modifiable";
+    champ.title = "Nom de ta partie - non modifiable";
   }
 
   function majJoueur(id, d) {
@@ -72,66 +82,87 @@
   function majStatut() {
     const n = Object.keys(state.joueurs).length;
     setStatus(n === 0
-      ? "🌍 Connecté au monde — tu es seul pour l'instant."
-      : "🌍 Connecté au monde — " + (n + 1) + " joueurs en ligne.");
+      ? "🌍 Connecte au monde - personne d'autre sur ta carte."
+      : "🌍 Connecte au monde - " + n + " autre" + (n > 1 ? "s" : "") + " sur ta carte.");
+  }
+
+  // Quitter la zone courante : retrait immediat + desabonnement + oubli des voisins.
+  function quitteZone() {
+    if (monRef) {
+      try { monRef.onDisconnect().cancel(); } catch (e) {}
+      try { monRef.remove(); } catch (e) {}
+      monRef = null;
+    }
+    if (zoneQuery) { try { zoneQuery.off(); } catch (e) {} zoneQuery = null; }
+    for (const k of Object.keys(state.joueurs)) delete state.joueurs[k];
+  }
+
+  // Rejoindre une zone (carte) : abonnement aux SEULS joueurs de cette carte.
+  function entreZone(zk) {
+    zoneActuelle = zk;
+    monKey = zk + "|" + monId;
+    monRef = db.ref("monde/joueurs/" + monKey);
+    monRef.onDisconnect().remove();
+    zoneQuery = db.ref("monde/joueurs").orderByKey().startAt(zk + "|").endAt(zk + "|" + FIN);
+    zoneQuery.on("child_added", s => { if (s.key !== monKey) { majJoueur(s.key, s.val()); majStatut(); } });
+    zoneQuery.on("child_changed", s => { if (s.key !== monKey) majJoueur(s.key, s.val()); });
+    zoneQuery.on("child_removed", s => { delete state.joueurs[s.key]; majStatut(); });
+    dernierEnvoi = 0; dernierePos = null;   // forcer une 1re ecriture dans la nouvelle zone
+    majStatut();
   }
 
   function connectWorld() {
     if (state.monde) return;
     if (typeof firebase === "undefined") {
-      setStatus("Service de jeu en ligne indisponible (Firebase non chargé).");
+      setStatus("Service de jeu en ligne indisponible (Firebase non charge).");
       return;
     }
 
     firebase.initializeApp(FIREBASE_CONFIG);
-    const db = firebase.database();
+    db = firebase.database();
     state.monde = db;
     monId = "j" + Math.random().toString(36).slice(2, 10);
-    monRef = db.ref("monde/joueurs/" + monId);
-    monRef.onDisconnect().remove();
-
-    const joueursRef = db.ref("monde/joueurs");
-    joueursRef.on("child_added", s => { if (s.key !== monId) { majJoueur(s.key, s.val()); majStatut(); } });
-    joueursRef.on("child_changed", s => { if (s.key !== monId) majJoueur(s.key, s.val()); });
-    joueursRef.on("child_removed", s => { delete state.joueurs[s.key]; majStatut(); });
 
     if (window.Valdoria.tchat) window.Valdoria.tchat.connect(db, pseudo);
     if (window.Valdoria.linkroom) window.Valdoria.linkroom.connectDb(db, monId);
-  if (window.Valdoria.cloudsave) window.Valdoria.cloudsave.connectDb(db);
+    if (window.Valdoria.cloudsave) window.Valdoria.cloudsave.connectDb(db);
     if (window.Valdoria.echange) window.Valdoria.echange.connectDb(db);
 
     db.ref(".info/connected").on("value", s => {
       if (s.val()) majStatut();
-      else setStatus("Connexion au monde perdue, reconnexion…");
+      else setStatus("Connexion au monde perdue, reconnexion...");
     });
 
-    // purge des joueurs fantômes (onglet tué sans onDisconnect)
+    // purge des voisins fantomes (onglet tue sans onDisconnect) sur la zone courante
     setInterval(() => {
       const limite = Date.now() - VIEUX_MS;
-      for (const id of Object.keys(state.joueurs))
-        if (state.joueurs[id].t < limite) { delete state.joueurs[id]; majStatut(); }
+      for (const k of Object.keys(state.joueurs))
+        if (state.joueurs[k].t < limite) { delete state.joueurs[k]; majStatut(); }
     }, 10000);
 
     $("playerName").addEventListener("change", () => {
       try { window.localStorage.setItem("valdoria.pseudo", $("playerName").value.trim()); } catch (e) {}
-      if (dernierePos) { dernierePos = null; sendPos(state.myPos); }
+      if (state.myPos) { dernierePos = null; sendPos(state.myPos); }
     });
   }
 
-  // Appelé en continu par app.js : n'écrit que si quelque chose a changé,
-  // plus un battement de cœur périodique pour rester "frais".
+  // Appele en continu par app.js : bascule de zone si on a change de carte, puis
+  // n'ecrit que si quelque chose a change (+ un battement toutes les 30 s).
   function sendPos(pos) {
-    if (!monRef || !pos) return;
+    if (!db || !monId || !pos) return;
+    if (typeof pos.g !== "number" || typeof pos.m !== "number") return;
+    const zk = pos.g + "_" + pos.m;
+    if (zk !== zoneActuelle) { quitteZone(); entreZone(zk); }
+    if (!monRef) return;
     const now = Date.now();
     if (pos.nom) verrouillePseudo(pos.nom);
     const meme = dernierePos &&
       dernierePos.x === pos.x && dernierePos.y === pos.y &&
-      dernierePos.g === pos.g && dernierePos.m === pos.m &&
       dernierePos.nom === (pos.nom || null);
     if (meme && now - dernierEnvoi < 30000) return;
     if (now - dernierEnvoi < ENVOI_MIN_MS) return;
     dernierEnvoi = now;
-    dernierePos = { x: pos.x, y: pos.y, g: pos.g, m: pos.m, nom: pos.nom || null };
+    dernierePos = { x: pos.x, y: pos.y, nom: pos.nom || null };
     monRef.set({
       nom: pseudo(),
       tag: window.Valdoria.tchat ? window.Valdoria.tchat.getTag() : null,
@@ -139,7 +170,6 @@
       sexe: pos.sexe === 0 || pos.sexe === 1 ? pos.sexe : null,
       t: firebase.database.ServerValue.TIMESTAMP
     });
- 
   }
 
   window.Valdoria.network = { connectWorld, sendPos };
