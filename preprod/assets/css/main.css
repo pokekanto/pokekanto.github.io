@@ -1029,3 +1029,6 @@ body.is-playing #legendeZone {
 .discord-btn { display:block; width:100%; box-sizing:border-box; margin-top:12px; text-align:center; text-decoration:none; background:#5865F2; color:#fff; border:none; border-radius:9px; padding:10px; font-weight:700; font-size:.84rem; cursor:pointer; box-shadow:0 2px 0 #3c45a5; }
 .discord-btn:hover { background:#4752c4; }
 .discord-btn:active { transform:translateY(2px); box-shadow:0 0 0 #3c45a5; }
+.layer-label { font-size:.82rem; margin:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.layer-select { flex:1; min-width:120px; padding:5px 7px; border-radius:7px; border:1px solid #b7a9e0; background:#fff; font-size:.8rem; cursor:pointer; }
+#drawerLayerPanel .layer-select { width:100%; box-sizing:border-box; }

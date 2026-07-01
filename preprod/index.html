@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="assets/img/onglet.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=20260625p">
+<link rel="stylesheet" href="assets/css/main.css?v=20260701a">
 </head>
 <body>
 <video id="bgVideo" class="bg-video" autoplay loop muted playsinline>
@@ -74,6 +74,9 @@
             
           </div>
           <p id="saveStatus" class="save-status"></p>
+        </div>
+        <div class="sidebar-section" id="layerSection">
+          <p class="layer-label">🌐 Layer : <select id="layerSelect" class="layer-select"></select></p>
         </div>
         <div class="sidebar-section" id="cloudSaveSection" hidden>
           <p class="cloud-code-label">☁️ Sauvegarde : <strong id="cloudCode">—</strong></p>
@@ -142,6 +145,11 @@
         <button type="button" id="drawerCloudDeleteBtn" class="cloud-danger">🗑️ Supprimer ma partie</button>
       </div>
 
+
+      <div class="panel" id="drawerLayerPanel">
+        <p class="linkroom-config-titre">🌐 Layer</p>
+        <select id="drawerLayerSelect" class="layer-select"></select>
+      </div>
 
       <div class="panel" id="drawerInfoPanel">
         <p class="drawer-info-ligne">Vitesse : <strong id="ipsValue">...</strong> i/s <span class="drawer-info-sub">(GBA 59,7)</span></p>
@@ -365,7 +373,7 @@
 <script src="assets/js/position.js?v=20260625d"></script>
 <script src="assets/js/raccourcis.js?v=20260614d"></script>
 <script src="assets/js/tchat.js?v=20260618d"></script>
-<script src="assets/js/network.js?v=20260701a"></script>
+<script src="assets/js/network.js?v=20260701b"></script>
 <script src="assets/js/siolink.js?v=20260618e"></script>
 <script src="assets/js/linkroom.js?v=20260618f"></script>
 <script src="assets/js/cloudsave.js?v=20260625h"></script>
