@@ -238,6 +238,7 @@
 
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
+    if (window.Valdoria.lieux) window.Valdoria.lieux.connect(db);
     state.monde = db;
     monId = "j" + Math.random().toString(36).slice(2, 10);
 
@@ -276,6 +277,8 @@
     if (!db || !monId || !pos) return;
     if (monLayer === null) return;
     if (typeof pos.g !== "number" || typeof pos.m !== "number") return;
+    // localisation des amis : publication LOC|<tag> (throttle interne a lieux.js)
+    if (window.Valdoria.lieux) window.Valdoria.lieux.publie(pos);
     const zk = "L" + monLayer + "_" + pos.g + "_" + pos.m;
     if (zk !== zoneActuelle) { quitteZone(); entreZone(zk); }
     if (!monRef) return;

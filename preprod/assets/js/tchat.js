@@ -146,7 +146,8 @@
     }
 
     for (const tag of amis) {
-      const enLigne = Object.values(joueurs).some(j => j.tag === tag);
+      const lieu = window.Valdoria.lieux ? window.Valdoria.lieux.lieuAmi(tag) : null;
+      const enLigne = lieu !== null || Object.values(joueurs).some(j => j.tag === tag);
 
       if (style === "chips") {
         // Version compacte pour la sidebar desktop
@@ -156,6 +157,13 @@
         led.className = "ami-led " + (enLigne ? "online" : "offline");
         puce.appendChild(led);
         puce.appendChild(document.createTextNode(" " + tag + " "));
+        if (lieu) {
+          const ou = document.createElement("span");
+          ou.className = "ami-lieu";
+          ou.textContent = lieu;
+          puce.appendChild(ou);
+          puce.appendChild(document.createTextNode(" "));
+        }
         const x = document.createElement("button");
         x.type = "button";
         x.textContent = "✕";
@@ -188,6 +196,12 @@
         });
         ligne.appendChild(led);
         ligne.appendChild(nomEl);
+        if (lieu) {
+          const ou = document.createElement("span");
+          ou.className = "ami-lieu";
+          ou.textContent = lieu;
+          ligne.appendChild(ou);
+        }
         ligne.appendChild(statut);
         ligne.appendChild(x);
         listeEl.appendChild(ligne);
@@ -288,6 +302,8 @@
       r.on("child_added", s => ajoute("amis", s));
       refs.push(r);
     }
+    // localisation : suit la carte courante de chaque ami (vert scintillant)
+    if (window.Valdoria.lieux) window.Valdoria.lieux.suitAmis(amis, rend);
   }
 
   function ajouteAmi(champEl) {
