@@ -125,10 +125,8 @@
         boite.appendChild(ligneInfo("Donne ton tag " + monTag + " à tes amis et ajoute les leurs ci-dessus : l'ajout mutuel ouvre la conversation."));
       for (const d of historiques.amis) boite.appendChild(ligneMessage(d));
     } else {
-      // Général : messages publics + messages amis mélangés, triés par temps
-      const tous = [...historiques.general, ...historiques.amis]
-        .sort((a, b) => (a.t || 0) - (b.t || 0));
-      for (const d of tous) boite.appendChild(ligneMessage(d));
+      // Général : messages PUBLICS uniquement — le canal Amis reste strictement séparé.
+      for (const d of historiques.general) boite.appendChild(ligneMessage(d));
     }
     boite.scrollTop = boite.scrollHeight;
   }
@@ -148,7 +146,8 @@
     }
 
     for (const tag of amis) {
-      const enLigne = Object.values(joueurs).some(j => j.tag === tag);
+      const lieu = window.Valdoria.lieux ? window.Valdoria.lieux.lieuAmi(tag) : null;
+      const enLigne = lieu !== null || Object.values(joueurs).some(j => j.tag === tag);
 
       if (style === "chips") {
         // Version compacte pour la sidebar desktop
@@ -158,6 +157,13 @@
         led.className = "ami-led " + (enLigne ? "online" : "offline");
         puce.appendChild(led);
         puce.appendChild(document.createTextNode(" " + tag + " "));
+        if (lieu) {
+          const ou = document.createElement("span");
+          ou.className = "ami-lieu";
+          ou.textContent = lieu;
+          puce.appendChild(ou);
+          puce.appendChild(document.createTextNode(" "));
+        }
         const x = document.createElement("button");
         x.type = "button";
         x.textContent = "✕";
@@ -190,6 +196,12 @@
         });
         ligne.appendChild(led);
         ligne.appendChild(nomEl);
+        if (lieu) {
+          const ou = document.createElement("span");
+          ou.className = "ami-lieu";
+          ou.textContent = lieu;
+          ligne.appendChild(ou);
+        }
         ligne.appendChild(statut);
         ligne.appendChild(x);
         listeEl.appendChild(ligne);
@@ -290,6 +302,8 @@
       r.on("child_added", s => ajoute("amis", s));
       refs.push(r);
     }
+    // localisation : suit la carte courante de chaque ami (vert scintillant)
+    if (window.Valdoria.lieux) window.Valdoria.lieux.suitAmis(amis, rend);
   }
 
   function ajouteAmi(champEl) {

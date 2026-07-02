@@ -43,7 +43,8 @@ Priorite actuelle : ameliorer l'experience multijoueur sans heberger ni distribu
 - `assets/js/position.js` : lecture de position et genre en RAM GBA.
 - `assets/js/raccourcis.js` : panneau de personnalisation des touches clavier.
 - `assets/js/tchat.js` : tchat general et amis via Firebase.
-- `assets/js/network.js` : connexion au monde partage Firebase, envoi de position. PRESENCE DECOUPEE PAR CARTE ET PAR LAYER (cle composite + requete de plage, eco) ; 3 layers de 200 joueurs max + file d'attente.
+- `assets/js/network.js` : connexion au monde partage Firebase, envoi de position.
+- `assets/js/lieux.js` : localisation des amis (table lieux extraite de la ROM FR + publication monde/joueurs/LOC|tag + suivi des amis). PRESENCE DECOUPEE PAR CARTE ET PAR LAYER (cle composite + requete de plage, eco) ; 3 layers de 200 joueurs max + file d'attente.
 - `assets/js/siolink.js` : emulation cable link GBA via WebRTC + signaling Firebase.
 - `assets/js/linkroom.js` : lobby Cable Club (combat / echange avec un ami).
 - `assets/js/cloudsave.js` : sauvegarde .sav compressee dans le cloud (Firebase) + code de recuperation (VALD-XXXX).
@@ -62,7 +63,7 @@ Priorite actuelle : ameliorer l'experience multijoueur sans heberger ni distribu
 - `assets/img/fille8.png` : sprite sheet du joueur feminin (3 cols x 4 lignes).
 
 Ordre de chargement dans index.html : dom → state → audio → emulator → emulator-iodine →
-position → raccourcis → tchat → network → siolink → linkroom → cloudsave → echange →
+position → raccourcis → lieux → tchat → network → siolink → linkroom → cloudsave → echange →
 combat → ladder → combat-ui → sprites → overlay → debug → roms → app → touch-controls → fullscreen.
 
 ## Regles ROM et legal
